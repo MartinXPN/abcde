@@ -29,7 +29,7 @@ class RandomGraphs(Dataset[Data]):
             elif self.graph_type == 'barabasi_albert':  graph = nx.barabasi_albert_graph(n=cur_n, m=4)
             elif self.graph_type == 'powerlaw':         graph = nx.powerlaw_cluster_graph(n=cur_n, m=4, p=0.05)
             else:
-                raise ValueError(' graph type is not supported yet')
+                raise ValueError(f'{self.graph_type} graph type is not supported yet')
 
             # Convert the NetworkX graph to iGraph
             g = Graph(directed=False)
@@ -73,7 +73,7 @@ class GraphDataModule(LightningDataModule):
 
     def __init__(self,
                  min_nodes: int, max_nodes: int, nb_train_graphs: int, nb_valid_graphs: int,
-                 batch_size: int,  graph_type: str = 'powerlaw', regenerate_every_epochs: int = 5,
+                 batch_size: int, graph_type: str = 'powerlaw', regenerate_epoch_interval: int = 5,
                  train_transforms=None, val_transforms=None, test_transforms=None,
                  dims=None):
         super().__init__(train_transforms, val_transforms, test_transforms, dims=dims)
@@ -83,7 +83,7 @@ class GraphDataModule(LightningDataModule):
         self.nb_valid_graphs = nb_valid_graphs
         self.batch_size = batch_size
         self.graph_type = graph_type
-        self.regenerate_every_epochs = regenerate_every_epochs
+        self.regenerate_every_epochs = regenerate_epoch_interval
 
     def prepare_data(self, *args, **kwargs):
         pass
@@ -115,13 +115,3 @@ class GraphDataModule(LightningDataModule):
     def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
         batch.to(device)
         return batch
-
-
-# dataset = RandomGraphs(20, 30, graph_type='powerlaw', nb_graphs=5)
-# loader = DataLoader(dataset.graphs, batch_size=2)
-#
-# for i in range(len(dataset)):
-#     print(dataset[i])
-#
-# for i in loader:
-#     print(i)

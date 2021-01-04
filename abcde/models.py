@@ -7,8 +7,8 @@ from torch.nn import functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.nn import GCNConv
 
-from loss import PairwiseRankingCrossEntropyLoss
-from util import kendall_tau, top_k_ranking_accuracy
+from abcde.loss import PairwiseRankingCrossEntropyLoss
+from abcde.util import kendall_tau, top_k_ranking_accuracy
 
 
 class ABCDE(pl.LightningModule):
@@ -72,8 +72,3 @@ class ABCDE(pl.LightningModule):
             'lr_scheduler': scheduler,
             'monitor': 'val_kendal'
         }
-
-
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# model = Net().to(device)
-# print(model)

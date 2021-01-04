@@ -6,9 +6,9 @@ import pytorch_lightning as pl
 from aim import Session
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
 
-from data import GraphDataModule
-from models import ABCDE
-from util import fix_random_seed
+from abcde.data import GraphDataModule
+from abcde.models import ABCDE
+from abcde.util import fix_random_seed
 
 
 class Gym:
@@ -36,8 +36,8 @@ class Gym:
 
     def train(self) -> pl.Trainer:
         self.model = ABCDE()
-        self.data = GraphDataModule(min_nodes=400, max_nodes=500, nb_train_graphs=500, nb_valid_graphs=100,
-                                    batch_size=16, graph_type='powerlaw', regenerate_every_epochs=5)
+        self.data = GraphDataModule(min_nodes=4000, max_nodes=5000, nb_train_graphs=800, nb_valid_graphs=200,
+                                    batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=5)
 
         trainer = pl.Trainer(auto_select_gpus=True, max_epochs=100, terminate_on_nan=True, enable_pl_optimizer=True,
                              reload_dataloaders_every_epoch=True, callbacks=[
