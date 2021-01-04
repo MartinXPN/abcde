@@ -1,0 +1,41 @@
+from setuptools import setup, find_packages
+
+setup(
+    name='abcde',
+    version='0.0.1',
+    description='Approximating Betweenness Centrality with Drop Edge',
+    author='Martin Mirakyan',
+    author_email='mirakyanmartin@gmail.com',
+    python_requires='>=3.8.0',
+    url='https://github.com/MartinXPN/abcde',
+    packages=find_packages(exclude=('tests',)),
+    install_requires=[
+        'torch>=1.7.0',
+        'pytorch-lightning>=1.1.0',
+        'torch-scatter',
+        'torch-sparse',
+        'torch-cluster',
+        'torch-spline-conv',
+        'torch-geometric>=1.6.3',
+        'python-igraph>=0.8.3',
+        'networkx>=2.5',
+        'scipy>=1.6.0',
+        'scikit-learn>=0.23.2',
+        'numpy>=1.19.4',
+        'tqdm>=4.54.1',
+        'fire>=0.3.1',
+        'aim>=2.1.4',
+    ],
+    extras_require={},
+    include_package_data=True,
+    license='MIT',
+    classifiers=[
+        # Full list of Trove classifiers: https://pypi.python.org/pypi?%3Aaction=list_classifiers
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.8',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+    ],
+)
