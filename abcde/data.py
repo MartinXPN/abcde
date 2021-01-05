@@ -58,16 +58,6 @@ class RandomGraphs(Dataset[Data]):
 
 
 class GraphDataModule(LightningDataModule):
-    min_nodes: int
-    max_nodes: int
-    nb_train_graphs: int
-    nb_valid_graphs: int
-    batch_size: int
-    graph_type: str
-
-    train_epochs: int = 0
-    valid_epochs: int = 0
-    regenerate_every_epochs: int = 5
     train_dataset: RandomGraphs
     valid_dataset: RandomGraphs
 
@@ -77,13 +67,15 @@ class GraphDataModule(LightningDataModule):
                  train_transforms=None, val_transforms=None, test_transforms=None,
                  dims=None):
         super().__init__(train_transforms, val_transforms, test_transforms, dims=dims)
-        self.min_nodes = min_nodes
-        self.max_nodes = max_nodes
-        self.nb_train_graphs = nb_train_graphs
-        self.nb_valid_graphs = nb_valid_graphs
-        self.batch_size = batch_size
-        self.graph_type = graph_type
-        self.regenerate_every_epochs = regenerate_epoch_interval
+        self.min_nodes: int = min_nodes
+        self.max_nodes: int = max_nodes
+        self.nb_train_graphs: int = nb_train_graphs
+        self.nb_valid_graphs: int = nb_valid_graphs
+        self.batch_size: int = batch_size
+        self.graph_type: str = graph_type
+        self.regenerate_every_epochs: int = regenerate_epoch_interval
+        self.train_epochs: int = 0
+        self.valid_epochs: int = 0
 
     def prepare_data(self, *args, **kwargs):
         pass
