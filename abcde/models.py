@@ -15,11 +15,11 @@ class ABCDE(pl.LightningModule):
     def __init__(self):
         super().__init__()
         self.node_linear = nn.Linear(1, 128)
-        self.convolutions = [GCNConv(128, 128) for _ in range(5)]
+        self.convolutions = nn.ModuleList([GCNConv(128, 128) for _ in range(5)])
         self.gru = nn.GRUCell(128, 128)
         self.linear2 = nn.Linear(256, 64)
         self.linear3 = nn.Linear(64, 1)
-        self.criterion: PairwiseRankingCrossEntropyLoss = PairwiseRankingCrossEntropyLoss()
+        self.criterion = PairwiseRankingCrossEntropyLoss()
 
     def forward(self, inputs):
         node_features, edge_index = inputs.x, inputs.edge_index
@@ -50,12 +50,12 @@ class ABCDE(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         """ Has to process the graphs one by one as the predictions and labels are sorted at once """
-        inputs = batch
-        pred = self(inputs).cpu().detach().numpy().flatten()
-        label = batch.y.cpu().detach().numpy().flatten()
+        with torch.no_grad():
+            pred = self(batch).cpu().detach().numpy().flatten()
+            label = batch.y.cpu().detach().numpy().flatten()
 
-        top_pred = np.argsort(pred)[::-1]
-        top_label = np.argsort(label)[::-1]
+        top_pred = np.argsort(-pred)
+        top_label = np.argsort(-label)
 
         self.log('val_top_0.01%', top_k_ranking_accuracy(top_label, top_pred, k=0.01))
         self.log('val_top_0.5%', top_k_ranking_accuracy(top_label, top_pred, k=0.05))
