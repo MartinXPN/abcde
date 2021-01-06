@@ -88,7 +88,7 @@ class GraphDataModule(LightningDataModule):
     def train_dataloader(self, *args, **kwargs) -> DataLoader:
         """ Generate random graphs and return the loader for those """
         if self.train_epochs % self.regenerate_every_epochs == 0:
-            print('Generating new Train graphs...')
+            print(f'Generating {self.nb_train_graphs} new Train graphs - [{self.min_nodes}-{self.max_nodes}]...')
             self.train_dataset = RandomGraphs(min_nodes=self.min_nodes, max_nodes=self.max_nodes,
                                               nb_graphs=self.nb_train_graphs, verbose=self.verbose)
         self.train_epochs += 1
@@ -97,7 +97,7 @@ class GraphDataModule(LightningDataModule):
     def val_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
         """ Generate random graphs and return the loader for those """
         if self.valid_epochs % self.regenerate_every_epochs == 0:
-            print('Generating new Validation graphs...')
+            print(f'Generating {self.nb_valid_graphs} new Validation graphs - [{self.min_nodes}-{self.max_nodes}]...')
             self.valid_dataset = RandomGraphs(min_nodes=self.min_nodes, max_nodes=self.max_nodes,
                                               nb_graphs=self.nb_valid_graphs, verbose=self.verbose)
         self.valid_epochs += 1
