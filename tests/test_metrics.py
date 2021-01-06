@@ -8,6 +8,13 @@ from abcde.metrics import top_k_ranking_accuracy, kendall_tau
 
 class TestMetrics(TestCase):
 
+    def test_empty(self):
+        self.assertTrue(np.isnan(kendall_tau([], [])))
+
+    def test_wrong_dims(self):
+        with self.assertRaises(ValueError):
+            kendall_tau([1, 2], [1])
+
     def test_simple(self):
         label = np.array([1, 2, 3])
         pred = np.array([2, 3, 4])

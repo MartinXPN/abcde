@@ -27,7 +27,9 @@ setup(
         'fire>=0.3.1',
         'aim>=2.1.4',
     ],
-    extras_require={},
+    extras_require={
+        'test': ['coverage', 'pytest', 'pytest-cov'],
+    },
     include_package_data=True,
     license='MIT',
     classifiers=[
