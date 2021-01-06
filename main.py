@@ -12,7 +12,7 @@ experiment_setup = ExperimentSetup(experiment='vanilla_drbc', create_latest=True
 model = ABCDE(nb_gcn_cycles=5, eval_interval=eval_interval)
 data = GraphDataModule(min_nodes=400, max_nodes=500, nb_train_graphs=100, nb_valid_graphs=100,
                        batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=5 * eval_interval,
-                       eval_interval=eval_interval, verbose=True)
+                       verbose=True)
 trainer = pl.Trainer(auto_select_gpus=True, max_epochs=100 * eval_interval, terminate_on_nan=True,
                      enable_pl_optimizer=True, reload_dataloaders_every_epoch=True,
                      check_val_every_n_epoch=eval_interval,
