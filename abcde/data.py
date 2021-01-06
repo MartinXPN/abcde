@@ -64,6 +64,7 @@ class GraphDataModule(LightningDataModule):
     def __init__(self,
                  min_nodes: int, max_nodes: int, nb_train_graphs: int, nb_valid_graphs: int,
                  batch_size: int, graph_type: str = 'powerlaw', regenerate_epoch_interval: int = 5,
+                 verbose: bool = True,
                  train_transforms=None, val_transforms=None, test_transforms=None,
                  dims=None):
         super().__init__(train_transforms, val_transforms, test_transforms, dims=dims)
@@ -74,6 +75,7 @@ class GraphDataModule(LightningDataModule):
         self.batch_size: int = batch_size
         self.graph_type: str = graph_type
         self.regenerate_every_epochs: int = regenerate_epoch_interval
+        self.verbose: bool = verbose
         self.train_epochs: int = 0
         self.valid_epochs: int = 0
 
@@ -88,16 +90,16 @@ class GraphDataModule(LightningDataModule):
         if self.train_epochs % self.regenerate_every_epochs == 0:
             print('Generating new Train graphs...')
             self.train_dataset = RandomGraphs(min_nodes=self.min_nodes, max_nodes=self.max_nodes,
-                                              nb_graphs=self.nb_train_graphs)
+                                              nb_graphs=self.nb_train_graphs, verbose=self.verbose)
         self.train_epochs += 1
         return DataLoader(self.train_dataset.graphs, batch_size=self.batch_size, shuffle=True)
 
     def val_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
         """ Generate random graphs and return the loader for those """
-        print('Generating new Validation graphs...')
         if self.valid_epochs % self.regenerate_every_epochs == 0:
+            print('Generating new Validation graphs...')
             self.valid_dataset = RandomGraphs(min_nodes=self.min_nodes, max_nodes=self.max_nodes,
-                                              nb_graphs=self.nb_valid_graphs)
+                                              nb_graphs=self.nb_valid_graphs, verbose=self.verbose)
         self.valid_epochs += 1
         return DataLoader(self.valid_dataset.graphs, batch_size=1, shuffle=False)
 

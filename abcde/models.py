@@ -12,10 +12,11 @@ from abcde.util import kendall_tau, top_k_ranking_accuracy
 
 
 class ABCDE(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, nb_gcn_cycles: int = 5, eval_interval: int = 1):
         super().__init__()
+        self.eval_interval = eval_interval
         self.node_linear = nn.Linear(1, 128)
-        self.convolutions = nn.ModuleList([GCNConv(128, 128) for _ in range(5)])
+        self.convolutions = nn.ModuleList([GCNConv(128, 128) for _ in range(nb_gcn_cycles)])
         self.gru = nn.GRUCell(128, 128)
         self.linear2 = nn.Linear(256, 64)
         self.linear3 = nn.Linear(64, 1)
@@ -66,7 +67,7 @@ class ABCDE(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters())
-        scheduler = ReduceLROnPlateau(optimizer, mode='max', patience=3, factor=0.7)
+        scheduler = ReduceLROnPlateau(optimizer, mode='max', patience=3 * self.eval_interval, factor=0.7)
         return {
             'optimizer': optimizer,
             'lr_scheduler': scheduler,
