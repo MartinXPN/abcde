@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, InitVar
-from typing import List, Any, Union, Optional
+from typing import List, Any, Union, Optional, Tuple
 
 import networkx as nx
 import numpy as np
@@ -42,13 +42,20 @@ class RandomGraphs(Dataset[Data]):
             degrees = np.array([degrees[n] for n in range(cur_n)], dtype='float32')
             degrees = np.expand_dims(degrees, -1)
 
+            src_ids, tgt_ids = self.gen_vertex_pairs(n=cur_n, size=5 * cur_n)
             edge_index = np.array(graph.to_directed(as_view=True).edges).T
             res = Data(x=torch.from_numpy(degrees),
                        y=torch.from_numpy(betweenness),
-                       src_ids=torch.randint(0, high=cur_n, size=(5 * cur_n,)),
-                       tgt_ids=torch.randint(0, high=cur_n, size=(5 * cur_n,)),
+                       src_ids=torch.from_numpy(src_ids),
+                       tgt_ids=torch.from_numpy(tgt_ids),
                        edge_index=torch.from_numpy(edge_index))
             self.graphs.append(res)
+
+    @staticmethod
+    def gen_vertex_pairs(n: int, size: int) -> Tuple[np.array, np.array]:
+        src_ids = np.hstack([np.arange(n), np.random.randint(low=0, high=n, size=size - n)])
+        tgt_ids = np.hstack([np.arange(1, n + 1) % n, np.random.randint(low=0, high=n, size=size - n)])
+        return src_ids, tgt_ids
 
     def __getitem__(self, index) -> Data:
         return self.graphs[index]

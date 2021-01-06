@@ -15,10 +15,13 @@ class ABCDE(pl.LightningModule):
     def __init__(self, nb_gcn_cycles: int = 5, lr_reduce_patience: int = 1):
         super().__init__()
         self.lr_reduce_patience: int = lr_reduce_patience
+        self.nb_gcn_cycles: int = nb_gcn_cycles
+
         self.node_linear = nn.Linear(1, 128)
-        self.convolutions = nn.ModuleList([GCNConv(128, 128) for _ in range(nb_gcn_cycles)])
+        # self.convolutions = nn.ModuleList([GCNConv(128, 128) for _ in range(nb_gcn_cycles)])
+        self.conv = GCNConv(128, 128)
         self.gru = nn.GRUCell(128, 128)
-        self.linear2 = nn.Linear(256, 64)
+        self.linear2 = nn.Linear(129, 64)
         self.linear3 = nn.Linear(64, 1)
         self.criterion = PairwiseRankingCrossEntropyLoss()
 
@@ -28,13 +31,18 @@ class ABCDE(pl.LightningModule):
         node_features = F.leaky_relu(node_features)
         node_features = F.normalize(node_features, p=2, dim=1)
 
-        x = node_features
-        for conv in self.convolutions:
-            x = conv(x, edge_index)
-            x = self.gru(x)
+        states = [node_features]
+        # for conv in self.convolutions:
+        conv = self.conv
+        for rep in range(self.nb_gcn_cycles):
+            x = conv(states[-1], edge_index)
+            x = self.gru(x, states[-1])
             x = F.normalize(x, p=2, dim=1)
+            states.append(x)
 
-        x = torch.cat([x, node_features], dim=-1)
+        x = states[-1]
+        # x = torch.cat([x, node_features], dim=-1)
+        x = torch.cat([x, inputs.x], dim=-1)
         x = self.linear2(x)
         x = F.leaky_relu(x)
         x = F.normalize(x, p=2, dim=1)
