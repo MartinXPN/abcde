@@ -8,13 +8,13 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.nn import GCNConv
 
 from abcde.loss import PairwiseRankingCrossEntropyLoss
-from abcde.util import kendall_tau, top_k_ranking_accuracy
+from abcde.metrics import kendall_tau, top_k_ranking_accuracy
 
 
 class ABCDE(pl.LightningModule):
-    def __init__(self, nb_gcn_cycles: int = 5, eval_interval: int = 1):
+    def __init__(self, nb_gcn_cycles: int = 5, lr_reduce_patience: int = 1):
         super().__init__()
-        self.eval_interval = eval_interval
+        self.lr_reduce_patience: int = lr_reduce_patience
         self.node_linear = nn.Linear(1, 128)
         self.convolutions = nn.ModuleList([GCNConv(128, 128) for _ in range(nb_gcn_cycles)])
         self.gru = nn.GRUCell(128, 128)
@@ -57,17 +57,20 @@ class ABCDE(pl.LightningModule):
 
         top_pred = np.argsort(-pred)
         top_label = np.argsort(-label)
-
-        self.log('val_top_0.01%', top_k_ranking_accuracy(top_label, top_pred, k=0.01))
-        self.log('val_top_0.5%', top_k_ranking_accuracy(top_label, top_pred, k=0.05))
-        self.log('val_top_1%', top_k_ranking_accuracy(top_label, top_pred, k=0.1))
-        self.log('val_kendal', kendall_tau(label, pred))
-        self.log('val_mse', mean_squared_error(label, pred))
-        self.log('val_max_error', max_error(label, pred))
+        res = {
+            'val_top_0.01%': top_k_ranking_accuracy(top_label, top_pred, k=0.01),
+            'val_top_0.5%': top_k_ranking_accuracy(top_label, top_pred, k=0.05),
+            'val_top_1%': top_k_ranking_accuracy(top_label, top_pred, k=0.1),
+            'val_kendal': kendall_tau(label, pred),
+            'val_mse': mean_squared_error(label, pred),
+            'val_max_error': max_error(label, pred)
+        }
+        self.log_dict(res)
+        return res
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters())
-        scheduler = ReduceLROnPlateau(optimizer, mode='max', patience=3 * self.eval_interval, factor=0.7)
+        scheduler = ReduceLROnPlateau(optimizer, mode='max', patience=self.lr_reduce_patience, factor=0.7)
         return {
             'optimizer': optimizer,
             'lr_scheduler': scheduler,

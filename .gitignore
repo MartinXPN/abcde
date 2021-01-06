@@ -151,7 +151,6 @@ dmypy.json
 .DS_Store
 
 # Datasets
-/datasets/
 MNIST/
 CIFAR10/
 FashionMNIST/

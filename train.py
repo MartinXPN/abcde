@@ -9,11 +9,11 @@ from abcde.util import fix_random_seed, ExperimentSetup
 eval_interval = 8       # Evaluate the model once every n epochs
 fix_random_seed(42)     # Fix the seed for reproducibility
 experiment_setup = ExperimentSetup(experiment='vanilla_drbc', create_latest=True)
-model = ABCDE(nb_gcn_cycles=5, eval_interval=eval_interval)
-data = GraphDataModule(min_nodes=4000, max_nodes=5000, nb_train_graphs=100, nb_valid_graphs=100,
+model = ABCDE(nb_gcn_cycles=5, lr_reduce_patience=3 * eval_interval)
+data = GraphDataModule(min_nodes=4000, max_nodes=5000, nb_train_graphs=160, nb_valid_graphs=160,
                        batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=5 * eval_interval,
                        verbose=False)
-trainer = pl.Trainer(auto_select_gpus=True, max_epochs=100 * eval_interval, terminate_on_nan=True,
+trainer = pl.Trainer(auto_select_gpus=True, max_epochs=300 * eval_interval, terminate_on_nan=True,
                      enable_pl_optimizer=True, reload_dataloaders_every_epoch=True,
                      check_val_every_n_epoch=eval_interval,
                      callbacks=[

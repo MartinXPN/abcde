@@ -22,6 +22,7 @@ setup(
         'scipy>=1.5.0',
         'scikit-learn>=0.23.2',
         'numpy>=1.19.4',
+        'pandas>=1.1.0',
         'tqdm>=4.54.1',
         'fire>=0.3.1',
         'aim>=2.1.4',
