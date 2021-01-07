@@ -34,6 +34,8 @@ def predict(model_path: Union[str, IO],
     graph = Data(x=torch.from_numpy(degrees),
                  y=torch.from_numpy(label),
                  edge_index=torch.from_numpy(edge_index))
+    print('Graph:', graph)
+
     res = model.validation_step(graph, batch_idx=0)
     end = time.time()
     res['run_time'] = end - start,

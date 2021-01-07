@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -63,6 +65,11 @@ class ABCDE(pl.LightningModule):
             pred = self(batch).cpu().detach().numpy().flatten()
             label = batch.y.cpu().detach().numpy().flatten()
 
+        # Vertices with deg(v) <= 1 (leafs) can't have high betweenness-centrality
+        degrees = batch.x.cpu().detach().numpy().flatten()
+        mask = degrees * len(degrees) < 1.1
+        pred[mask] = pred.min() - np.finfo(np.float32).eps
+
         top_pred = np.argsort(-pred)
         top_label = np.argsort(-label)
         res = {
@@ -73,7 +80,7 @@ class ABCDE(pl.LightningModule):
             'val_mse': mean_squared_error(label, pred),
             'val_max_error': max_error(label, pred)
         }
-        self.log_dict(res)
+        self.log_dict(copy.copy(res))
         return res
 
     def configure_optimizers(self):
