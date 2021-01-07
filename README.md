@@ -9,8 +9,15 @@ python train.py
 ```
 
 ### To evaluate the model
+Download the evaluation data
+```shell
+cd datasets
+./download.sh
+```
+
+Then run the prediction script on the target dataset
 ```shell
 python predict.py --model_path experiments/latest/models/best.h5py \
-                  --data_test datasets/Real/amazon.txt \
-                  --label_file datasets/Real/amazon_score.txt
+                  --data_test datasets/real/amazon.txt \
+                  --label_file datasets/real/amazon_score.txt
 ```

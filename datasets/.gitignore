@@ -3,3 +3,4 @@
 
 # Keep only the .gitignore file
 !.gitignore
+!download.sh
