@@ -1,5 +1,3 @@
-import copy
-
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -7,49 +5,18 @@ from sklearn.metrics import mean_squared_error, max_error
 from torch import nn
 from torch.nn import functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch_geometric.nn import GCNConv
+from torch_geometric.nn import GCNConv, TransformerConv
 
 from abcde.loss import PairwiseRankingCrossEntropyLoss
 from abcde.metrics import kendall_tau, top_k_ranking_accuracy
 
 
-class ABCDE(pl.LightningModule):
-    def __init__(self, nb_gcn_cycles: int = 5, lr_reduce_patience: int = 1):
+class BetweennessCentralityEstimator(pl.LightningModule):
+
+    def __init__(self, lr_reduce_patience: int = 1):
         super().__init__()
         self.lr_reduce_patience: int = lr_reduce_patience
-        self.nb_gcn_cycles: int = nb_gcn_cycles
-
-        self.node_linear = nn.Linear(1, 128)
-        # self.convolutions = nn.ModuleList([GCNConv(128, 128) for _ in range(nb_gcn_cycles)])
-        self.conv = GCNConv(128, 128)
-        self.gru = nn.GRUCell(128, 128)
-        self.linear2 = nn.Linear(129, 64)
-        self.linear3 = nn.Linear(64, 1)
         self.criterion = PairwiseRankingCrossEntropyLoss()
-
-    def forward(self, inputs):
-        node_features, edge_index = inputs.x, inputs.edge_index
-        node_features = self.node_linear(node_features)
-        node_features = F.leaky_relu(node_features)
-        node_features = F.normalize(node_features, p=2, dim=1)
-
-        states = [node_features]
-        # for conv in self.convolutions:
-        conv = self.conv
-        for rep in range(self.nb_gcn_cycles):
-            x = conv(states[-1], edge_index)
-            x = self.gru(x, states[-1])
-            x = F.normalize(x, p=2, dim=1)
-            states.append(x)
-
-        x = states[-1]
-        # x = torch.cat([x, node_features], dim=-1)
-        x = torch.cat([x, inputs.x], dim=-1)
-        x = self.linear2(x)
-        x = F.leaky_relu(x)
-        x = F.normalize(x, p=2, dim=1)
-        x = self.linear3(x)
-        return x
 
     def training_step(self, batch, batch_idx):
         inputs = batch
@@ -80,7 +47,7 @@ class ABCDE(pl.LightningModule):
             'val_mse': mean_squared_error(label, pred),
             'val_max_error': max_error(label, pred)
         }
-        self.log_dict(copy.copy(res))
+        self.log_dict(res)
         return res
 
     def configure_optimizers(self):
@@ -91,3 +58,77 @@ class ABCDE(pl.LightningModule):
             'lr_scheduler': scheduler,
             'monitor': 'val_kendal'
         }
+
+
+class DrBC(BetweennessCentralityEstimator):
+    def __init__(self, nb_gcn_cycles: int = 5, lr_reduce_patience: int = 1):
+        super().__init__(lr_reduce_patience=lr_reduce_patience)
+        self.nb_gcn_cycles: int = nb_gcn_cycles
+
+        self.node_linear = nn.Linear(1, 128)
+        self.conv = GCNConv(128, 128)
+        self.gru = nn.GRUCell(128, 128)
+        self.linear2 = nn.Linear(129, 64)
+        self.linear3 = nn.Linear(64, 1)
+
+    def forward(self, inputs):
+        node_features, edge_index = inputs.x, inputs.edge_index
+        node_features = self.node_linear(node_features)
+        node_features = F.leaky_relu(node_features)
+        node_features = F.normalize(node_features, p=2, dim=1)
+
+        states = [node_features]
+        conv = self.conv
+        for rep in range(self.nb_gcn_cycles):
+            x = conv(states[-1], edge_index)
+            x = self.gru(x, states[-1])
+            x = F.normalize(x, p=2, dim=1)
+            states.append(x)
+
+        x = states[-1]
+        # x = torch.cat([x, node_features], dim=-1)
+        x = torch.cat([x, inputs.x], dim=-1)
+        x = self.linear2(x)
+        x = F.leaky_relu(x)
+        x = F.normalize(x, p=2, dim=1)
+        x = self.linear3(x)
+        return x
+
+
+class ABCDE(BetweennessCentralityEstimator):
+    def __init__(self, nb_gcn_cycles: int = 5, lr_reduce_patience: int = 1):
+        super().__init__(lr_reduce_patience=lr_reduce_patience)
+        self.nb_gcn_cycles: int = nb_gcn_cycles
+
+        self.node_linear = nn.Linear(1, 16)
+        self.linear1 = nn.Linear(16, 128)
+        self.conv = GCNConv(128, 128)
+        self.gru = nn.GRUCell(128, 128)
+        self.linear2 = nn.Linear(128+16, 64)
+        self.linear3 = nn.Linear(64, 1)
+
+    def forward(self, inputs):
+        node_features, edge_index = inputs.x, inputs.edge_index
+        node_features = self.node_linear(node_features)
+        node_features = F.leaky_relu(node_features)
+        node_features = F.normalize(node_features, p=2, dim=1)
+
+        x = self.linear1(node_features)
+        x = F.leaky_relu(x)
+        x = F.normalize(x, p=2, dim=1)
+        states = [x]
+        conv = self.conv
+        for rep in range(self.nb_gcn_cycles):
+            x = conv(states[-1], edge_index)
+            x = self.gru(x, states[-1])
+            x = F.normalize(x, p=2, dim=1)
+            states.append(x)
+
+        x = states[-1]
+        # x = torch.cat([x, node_features], dim=-1)
+        x = torch.cat([x, node_features], dim=-1)
+        x = self.linear2(x)
+        x = F.leaky_relu(x)
+        x = F.normalize(x, p=2, dim=1)
+        x = self.linear3(x)
+        return x

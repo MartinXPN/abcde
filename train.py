@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
 
 from abcde.data import GraphDataModule
-from abcde.models import ABCDE
+from abcde.models import ABCDE, DrBC
 from abcde.util import fix_random_seed, ExperimentSetup
 
 
