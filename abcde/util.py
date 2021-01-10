@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from aim import Session
 
 
 def fix_random_seed(seed=42):
@@ -16,9 +15,10 @@ def fix_random_seed(seed=42):
 
 
 class ExperimentSetup:
-    def __init__(self, experiment: str, create_latest: bool = False):
+    def __init__(self, name: str, create_latest: bool = False):
         """ Keeps track of the experiment path, model save path, log directory, and sessions """
-        experiment_path: Path
+        self.name = name
+
         self.experiment_path = Path('experiments') / datetime.now().replace(microsecond=0).isoformat()
         self.model_save_path = self.experiment_path / 'models/'
         self.log_dir = self.experiment_path / 'logs/'
@@ -31,4 +31,3 @@ class ExperimentSetup:
             latest.symlink_to(self.experiment_path.absolute(), target_is_directory=True)
 
         print(f'Logging experiments at: `{self.experiment_path.absolute()}`')
-        self.aim_session = Session(experiment=experiment)

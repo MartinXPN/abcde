@@ -100,35 +100,29 @@ class ABCDE(BetweennessCentralityEstimator):
         super().__init__(lr_reduce_patience=lr_reduce_patience)
         self.nb_gcn_cycles: int = nb_gcn_cycles
 
-        self.node_linear = nn.Linear(1, 16)
-        self.linear1 = nn.Linear(16, 128)
+        self.node_linear = nn.Linear(1, 32)
+        self.linear1 = nn.Linear(32, 128)
         self.conv = GCNConv(128, 128)
         self.gru = nn.GRUCell(128, 128)
-        self.linear2 = nn.Linear(128+16, 64)
+        self.linear2 = nn.Linear(128+32, 64)
         self.linear3 = nn.Linear(64, 1)
 
     def forward(self, inputs):
         node_features, edge_index = inputs.x, inputs.edge_index
         node_features = self.node_linear(node_features)
         node_features = F.leaky_relu(node_features)
-        node_features = F.normalize(node_features, p=2, dim=1)
 
         x = self.linear1(node_features)
         x = F.leaky_relu(x)
-        x = F.normalize(x, p=2, dim=1)
         states = [x]
         conv = self.conv
         for rep in range(self.nb_gcn_cycles):
             x = conv(states[-1], edge_index)
             x = self.gru(x, states[-1])
-            x = F.normalize(x, p=2, dim=1)
             states.append(x)
 
-        x = states[-1]
-        # x = torch.cat([x, node_features], dim=-1)
-        x = torch.cat([x, node_features], dim=-1)
+        x = torch.cat([states[-1], node_features], dim=-1)
         x = self.linear2(x)
         x = F.leaky_relu(x)
-        x = F.normalize(x, p=2, dim=1)
         x = self.linear3(x)
         return x
