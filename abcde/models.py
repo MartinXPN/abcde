@@ -5,7 +5,7 @@ from sklearn.metrics import mean_squared_error, max_error
 from torch import nn
 from torch.nn import functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch_geometric.nn import GCNConv
+from torch_geometric.nn import GCNConv, GATConv
 
 from abcde.loss import PairwiseRankingCrossEntropyLoss
 from abcde.metrics import kendall_tau, top_k_ranking_accuracy
@@ -102,7 +102,7 @@ class ABCDE(BetweennessCentralityEstimator):
 
         self.node_linear = nn.Linear(1, 32)
         self.linear1 = nn.Linear(32, 128)
-        self.convolutions = nn.ModuleList([GCNConv(128, 128) for _ in range(nb_gcn_cycles)])
+        self.convolutions = nn.ModuleList([GATConv(128, 128 // 4, heads=4, concat=True) for _ in range(nb_gcn_cycles)])
         # self.conv = GCNConv(128, 128)
         self.gru = nn.GRUCell(128, 128)
         self.linear2 = nn.Linear(128+32, 64)
