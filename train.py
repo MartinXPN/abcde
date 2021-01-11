@@ -4,16 +4,20 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Learning
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from abcde.data import GraphDataModule
-from abcde.models import ABCDE, DrBC
+from abcde.models import ABCDE
 from abcde.util import fix_random_seed, ExperimentSetup
 
 
 eval_interval = 8       # Evaluate the model once every n epochs
 fix_random_seed(42)     # Fix the seed for reproducibility
-experiment = ExperimentSetup(name='abcde_32_skip_no_normalize', create_latest=True)
+experiment = ExperimentSetup(name='abcde_unique_convs', create_latest=True, long_description="""
+Skip connection from the input node feature of 32 length to the final Fully Connected layers
+Setting all the convolutions in the model to be unique instead of reusing the same conv weights
+GRU cell is still reused on each step
+""")
 
 model = ABCDE(nb_gcn_cycles=5, lr_reduce_patience=3 * eval_interval)
-data = GraphDataModule(min_nodes=4000, max_nodes=5000, nb_train_graphs=160, nb_valid_graphs=320,
+data = GraphDataModule(min_nodes=400, max_nodes=500, nb_train_graphs=160, nb_valid_graphs=320,
                        batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=5 * eval_interval,
                        verbose=False)
 trainer = pl.Trainer(logger=[
