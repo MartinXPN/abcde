@@ -101,11 +101,10 @@ class ABCDE(BetweennessCentralityEstimator):
         self.nb_gcn_cycles: int = nb_gcn_cycles
 
         self.node_linear = nn.Linear(1, 32)
-        self.linear1 = nn.Linear(32, 128)
-        self.convolutions = nn.ModuleList([GATConv(128, 128 // 4, heads=4, concat=True) for _ in range(nb_gcn_cycles)])
-        # self.conv = GCNConv(128, 128)
-        self.gru = nn.GRUCell(128, 128)
-        self.linear2 = nn.Linear(128+32, 64)
+        self.linear1 = nn.Linear(32, 256)
+        self.convolutions = nn.ModuleList([GATConv(256, 256 // 8, heads=8, concat=True) for _ in range(nb_gcn_cycles)])
+        self.gru = nn.GRUCell(256, 256)
+        self.linear2 = nn.Linear(256+32, 64)
         self.linear3 = nn.Linear(64, 1)
 
     def forward(self, inputs):

@@ -9,8 +9,8 @@ from abcde.util import fix_random_seed, ExperimentSetup
 
 eval_interval = 8       # Evaluate the model once every n epochs
 fix_random_seed(42)     # Fix the seed for reproducibility
-experiment = ExperimentSetup(name='gatconv', create_latest=True, long_description="""
-Use GATConv with 4 heads and each head has 32 output features - all of them are concatenated in the end
+experiment = ExperimentSetup(name='gatconv_8_heads', create_latest=True, long_description="""
+Use GATConv with 8 heads and each head has 32 output features - all of them are concatenated in the end
 """)
 
 model = ABCDE(nb_gcn_cycles=5, lr_reduce_patience=3 * eval_interval)
