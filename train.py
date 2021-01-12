@@ -1,6 +1,7 @@
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 
 from abcde.data import GraphDataModule
 from abcde.models import ABCDE
@@ -18,10 +19,12 @@ data = GraphDataModule(min_nodes=400, max_nodes=500, nb_train_graphs=160, nb_val
                        batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=5 * eval_interval,
                        verbose=False)
 trainer = pl.Trainer(logger=[
+                        CSVLogger(save_dir=experiment.log_dir, name=experiment.name + '_history'),
                         TensorBoardLogger(save_dir=experiment.log_dir, name=experiment.name, default_hp_metric=False),
                         # AimLogger(experiment=experiment.name)
                      ],
-                     auto_select_gpus=True, max_epochs=10 * eval_interval, terminate_on_nan=True,
+                     gpus=-1 if torch.cuda.is_available() else None, auto_select_gpus=True, log_gpu_memory='all',
+                     max_epochs=10 * eval_interval, terminate_on_nan=True,
                      enable_pl_optimizer=True, reload_dataloaders_every_epoch=True,
                      check_val_every_n_epoch=eval_interval,
                      callbacks=[
