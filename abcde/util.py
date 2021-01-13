@@ -20,8 +20,9 @@ class ExperimentSetup:
         """ Keeps track of the experiment path, model save path, log directory, and sessions """
         self.name = name
         self.long_description = long_description
+        self.experiment_time = datetime.now().replace(microsecond=0).isoformat()
 
-        self.experiment_path = Path('experiments') / datetime.now().replace(microsecond=0).isoformat()
+        self.experiment_path = Path('experiments') / f'{self.experiment_time}_{self.name}'
         self.model_save_path = self.experiment_path / 'models/'
         self.log_dir = self.experiment_path / 'logs/'
         self.model_save_path.mkdir(parents=True, exist_ok=True)

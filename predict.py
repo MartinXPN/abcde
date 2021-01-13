@@ -21,7 +21,7 @@ def predict(model_path: Union[str, IO],
 
     label = pd.read_csv(label_file, delim_whitespace=True, header=None, names=['node_id', 'betweenness'])
     assert np.array_equal(label.node_id.map(lambda x: int(x.replace(':', ''))).values, np.arange(len(label)))
-    label = label.betweenness.values
+    label = np.expand_dims(label.betweenness.values, -1)
 
     g = nx.read_weighted_edgelist(data_test, nodetype=int)
     edge_index = np.array(g.to_directed(as_view=True).edges).T

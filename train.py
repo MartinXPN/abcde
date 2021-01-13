@@ -11,7 +11,7 @@ from abcde.util import fix_random_seed, ExperimentSetup
 eval_interval = 8       # Evaluate the model once every n epochs
 fix_random_seed(42)     # Fix the seed for reproducibility
 experiment = ExperimentSetup(name='gatconv_8_heads', create_latest=True, long_description="""
-Use GATConv with 8 heads and each head has 32 output features - all of them are concatenated in the end
+Use GATConv with 8 heads and each head has 16 output features - all of them are concatenated in the end
 """)
 
 model = ABCDE(nb_gcn_cycles=5, lr_reduce_patience=3 * eval_interval)
@@ -19,7 +19,7 @@ data = GraphDataModule(min_nodes=400, max_nodes=500, nb_train_graphs=160, nb_val
                        batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=5 * eval_interval,
                        verbose=False)
 trainer = pl.Trainer(logger=[
-                        CSVLogger(save_dir=experiment.log_dir, name=experiment.name + '_history'),
+                        CSVLogger(save_dir=experiment.log_dir, name='history'),
                         TensorBoardLogger(save_dir=experiment.log_dir, name=experiment.name, default_hp_metric=False),
                         # AimLogger(experiment=experiment.name)
                      ],
