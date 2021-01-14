@@ -40,10 +40,10 @@ class BetweennessCentralityEstimator(pl.LightningModule):
         top_pred = np.argsort(-pred)
         top_label = np.argsort(-label)
         res = {
-            'val_top_0.01%': top_k_ranking_accuracy(top_label, top_pred, k=0.01),
-            'val_top_0.5%': top_k_ranking_accuracy(top_label, top_pred, k=0.05),
-            'val_top_1%': top_k_ranking_accuracy(top_label, top_pred, k=0.1),
-            'val_kendal': kendall_tau(label, pred),
+            'val_top_1%': top_k_ranking_accuracy(top_label, top_pred, k=0.01) * 100,
+            'val_top_5%': top_k_ranking_accuracy(top_label, top_pred, k=0.05) * 100,
+            'val_top_10%': top_k_ranking_accuracy(top_label, top_pred, k=0.1) * 100,
+            'val_kendal': kendall_tau(label, pred) * 100,
             'val_mse': mean_squared_error(label, pred),
             'val_max_error': max_error(label, pred)
         }
@@ -75,14 +75,14 @@ class DrBC(BetweennessCentralityEstimator):
         node_features, edge_index = inputs.x, inputs.edge_index
         node_features = self.node_linear(node_features)
         node_features = F.leaky_relu(node_features)
-        node_features = F.normalize(node_features, p=2, dim=1)
+        node_features = F.normalize(node_features, p=2, dim=-1)
 
         states = [node_features]
         conv = self.conv
         for rep in range(self.nb_gcn_cycles):
             x = conv(states[-1], edge_index)
             x = self.gru(x, states[-1])
-            x = F.normalize(x, p=2, dim=1)
+            x = F.normalize(x, p=2, dim=-1)
             states.append(x)
 
         x = states[-1]
@@ -111,13 +111,16 @@ class ABCDE(BetweennessCentralityEstimator):
         node_features, edge_index = inputs.x, inputs.edge_index
         node_features = self.node_linear(node_features)
         node_features = F.leaky_relu(node_features)
+        node_features = F.normalize(node_features, p=2, dim=-1)
 
         x = self.linear1(node_features)
         x = F.leaky_relu(x)
+        x = F.normalize(x, p=2, dim=-1)
         states = [x]
         for conv in self.convolutions:
-            x = conv(states[-1], edge_index)
+            x = conv(x, edge_index)
             x = self.gru(x, states[-1])
+            x = F.normalize(x, p=2, dim=-1)
             states.append(x)
 
         x = torch.cat([states[-1], node_features], dim=-1)

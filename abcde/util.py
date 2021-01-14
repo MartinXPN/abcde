@@ -15,6 +15,11 @@ def fix_random_seed(seed=42):
     os.environ['PYTHONHASHSEED'] = str(seed)
 
 
+def display_help_stdout(lines, out):
+    text = "\n".join(lines) + "\n"
+    out.write(text)
+
+
 class ExperimentSetup:
     def __init__(self, name: str, long_description: Optional[str] = None, create_latest: bool = False):
         """ Keeps track of the experiment path, model save path, log directory, and sessions """

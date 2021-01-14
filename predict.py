@@ -1,6 +1,6 @@
 import time
 from pprint import pprint
-from typing import Union, IO, Dict
+from typing import Union, IO
 
 import fire
 import networkx as nx
@@ -10,11 +10,12 @@ import torch
 from torch_geometric.data import Data
 
 from abcde.models import ABCDE
+from abcde.util import display_help_stdout
 
 
 def predict(model_path: Union[str, IO],
             data_test:  Union[str, IO],
-            label_file: Union[str, IO]) -> Dict[str, float]:
+            label_file: Union[str, IO]):
     model = ABCDE.load_from_checkpoint(model_path)
     model.eval()
     model.freeze()
@@ -40,8 +41,8 @@ def predict(model_path: Union[str, IO],
     end = time.time()
     res['run_time'] = end - start,
     pprint(res)
-    return res
 
 
 if __name__ == '__main__':
+    fire.core.Display = display_help_stdout
     fire.Fire(predict)
