@@ -74,7 +74,7 @@ class DrBC(BetweennessCentralityEstimator):
     def forward(self, inputs):
         node_features, edge_index = inputs.x, inputs.edge_index
         node_features = self.node_linear(node_features)
-        node_features = F.leaky_relu(node_features)
+        node_features = F.leaky_relu(node_features, negative_slope=0.3)
         node_features = F.normalize(node_features, p=2, dim=-1)
 
         states = [node_features]
@@ -89,8 +89,7 @@ class DrBC(BetweennessCentralityEstimator):
         # x = torch.cat([x, node_features], dim=-1)
         x = torch.cat([x, inputs.x], dim=-1)
         x = self.linear2(x)
-        x = F.leaky_relu(x)
-        x = F.normalize(x, p=2, dim=1)
+        x = F.leaky_relu(x, negative_slope=0.3)
         x = self.linear3(x)
         return x
 
@@ -104,17 +103,17 @@ class ABCDE(BetweennessCentralityEstimator):
         self.linear1 = nn.Linear(32, 128)
         self.convolutions = nn.ModuleList([GATConv(128, 128 // 8, heads=8, concat=True) for _ in range(nb_gcn_cycles)])
         self.gru = nn.GRUCell(128, 128)
-        self.linear2 = nn.Linear(128 + 32, 64)
+        self.linear2 = nn.Linear(128 + 32 + 1, 64)
         self.linear3 = nn.Linear(64, 1)
 
     def forward(self, inputs):
         node_features, edge_index = inputs.x, inputs.edge_index
         node_features = self.node_linear(node_features)
-        node_features = F.leaky_relu(node_features)
+        node_features = F.leaky_relu(node_features, negative_slope=0.3)
         node_features = F.normalize(node_features, p=2, dim=-1)
 
         x = self.linear1(node_features)
-        x = F.leaky_relu(x)
+        x = F.leaky_relu(x, negative_slope=0.3)
         x = F.normalize(x, p=2, dim=-1)
         states = [x]
         for conv in self.convolutions:
@@ -123,8 +122,8 @@ class ABCDE(BetweennessCentralityEstimator):
             x = F.normalize(x, p=2, dim=-1)
             states.append(x)
 
-        x = torch.cat([states[-1], node_features], dim=-1)
+        x = torch.cat([states[-1], node_features, inputs.x], dim=-1)
         x = self.linear2(x)
-        x = F.leaky_relu(x)
+        x = F.leaky_relu(x, negative_slope=0.3)
         x = self.linear3(x)
         return x
