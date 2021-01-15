@@ -10,9 +10,8 @@ from abcde.util import fix_random_seed, ExperimentSetup
 
 eval_interval = 8       # Evaluate the model once every n epochs
 fix_random_seed(42)     # Fix the seed for reproducibility
-experiment = ExperimentSetup(name='gatconv_8_heads_normalized', create_latest=True, long_description="""
-Use GATConv with 8 heads and each head has 16 output features - all of them are concatenated in the end
-Try to use L2 normalization like it was done in the vanilla DrBC paper
+experiment = ExperimentSetup(name='single_gatconv_4_heads', create_latest=True, long_description="""
+Use single GATConv with 4 heads (128 total size) all heads are concatenated in the end
 """)
 
 model = ABCDE(nb_gcn_cycles=5, lr_reduce_patience=3 * eval_interval)
