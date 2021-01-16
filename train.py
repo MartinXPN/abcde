@@ -10,8 +10,9 @@ from abcde.util import fix_random_seed, ExperimentSetup
 
 eval_interval = 8       # Evaluate the model once every n epochs
 fix_random_seed(42)     # Fix the seed for reproducibility
-experiment = ExperimentSetup(name='single_gatconv_4_heads', create_latest=True, long_description="""
-Use single GATConv with 4 heads (128 total size) all heads are concatenated in the end
+experiment = ExperimentSetup(name='gatconv_drop_edge', create_latest=True, long_description="""
+Use single GATConv with 4 heads (128 output units)
+Use DropEdge on undirected input graph
 """)
 
 model = ABCDE(nb_gcn_cycles=5, lr_reduce_patience=3 * eval_interval)
@@ -27,6 +28,7 @@ trainer = pl.Trainer(logger=[
                      max_epochs=10 * eval_interval, terminate_on_nan=True,
                      enable_pl_optimizer=True, reload_dataloaders_every_epoch=True,
                      check_val_every_n_epoch=eval_interval,
+                     progress_bar_refresh_rate=30,
                      callbacks=[
                          EarlyStopping(monitor='val_kendal', patience=5 * eval_interval, verbose=True, mode='max'),
                          ModelCheckpoint(dirpath=experiment.model_save_path, filename='best',

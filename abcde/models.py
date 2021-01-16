@@ -6,6 +6,7 @@ from torch import nn
 from torch.nn import functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.nn import GCNConv, GATConv
+from torch_geometric.utils import dropout_adj
 
 from abcde.loss import PairwiseRankingCrossEntropyLoss
 from abcde.metrics import kendall_tau, top_k_ranking_accuracy
@@ -101,7 +102,7 @@ class ABCDE(BetweennessCentralityEstimator):
         self.node_linear = nn.Linear(1, 32)
         self.linear1 = nn.Linear(32, 128)
         # self.convolutions = nn.ModuleList([GATConv(128, 128 // 8, heads=8, concat=True) for _ in range(nb_gcn_cycles)])
-        self.conv = GATConv(128, 128 // 4, heads=4, concat=True)
+        self.conv = GATConv(128, out_channels=128 // 4, heads=4, negative_slope=0.3)
         self.gru = nn.GRUCell(128, 128)
         self.linear2 = nn.Linear(128 + 32 + 1, 64)
         self.linear3 = nn.Linear(64, 1)
@@ -118,7 +119,8 @@ class ABCDE(BetweennessCentralityEstimator):
         states = [x]
         # for conv in self.convolutions:
         for rep in range(self.nb_gcn_cycles):
-            x = self.conv(x, edge_index)
+            drop_edge, _ = dropout_adj(edge_index, p=0.15, force_undirected=True, training=self.training)
+            x = self.conv(x, drop_edge)
             x = self.gru(x, states[-1])
             x = F.normalize(x, p=2, dim=-1)
             states.append(x)

@@ -40,7 +40,7 @@ def predict(model_path: Union[str, IO],
     res = model.validation_step(graph, batch_idx=0)
     end = time.time()
     res['run_time'] = end - start,
-    pprint(res)
+    pprint(res, sort_dicts=False)
 
 
 if __name__ == '__main__':
