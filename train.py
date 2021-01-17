@@ -17,10 +17,9 @@ if __name__ == '__main__':
     """)
 
     model = ABCDE(nb_gcn_cycles=5, lr_reduce_patience=3)
-    data = GraphDataModule(min_nodes=400, max_nodes=500, nb_train_graphs=160, nb_valid_graphs=320,
+    data = GraphDataModule(min_nodes=400, max_nodes=500, nb_train_graphs=100, nb_valid_graphs=100,
                            batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=5,
-                           repeats=8,
-                           verbose=False)
+                           repeats=8, verbose=False)
     trainer = pl.Trainer(logger=[
                             CSVLogger(experiment.log_dir, name='history'),
                             TensorBoardLogger(experiment.log_dir, name=experiment.name, default_hp_metric=False),
