@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field, InitVar
 from typing import List, Any, Union, Optional, Tuple
 
@@ -17,10 +18,12 @@ class RandomGraphs(Dataset[Data]):
     max_nodes: int
     graph_type: str = 'powerlaw'
     nb_graphs: int = 1
+    repeats: int = 1
     graphs: List[Data] = field(default_factory=list)
     verbose: InitVar[bool] = True
 
     def __post_init__(self, verbose):
+        assert self.repeats >= 1
         for _ in trange(self.nb_graphs, disable=not verbose):
             # Generate a random graph with NetworkX
             cur_n = np.random.randint(self.min_nodes, self.max_nodes)
@@ -58,10 +61,11 @@ class RandomGraphs(Dataset[Data]):
         return src_ids, tgt_ids
 
     def __getitem__(self, index) -> Data:
+        index %= len(self.graphs)
         return self.graphs[index]
 
     def __len__(self) -> int:
-        return self.nb_graphs
+        return self.nb_graphs * self.repeats
 
 
 class GraphDataModule(LightningDataModule):
@@ -70,10 +74,9 @@ class GraphDataModule(LightningDataModule):
 
     def __init__(self,
                  min_nodes: int, max_nodes: int, nb_train_graphs: int, nb_valid_graphs: int,
-                 batch_size: int, graph_type: str = 'powerlaw', regenerate_epoch_interval: int = 5,
+                 batch_size: int, graph_type: str = 'powerlaw', repeats: int = 8, regenerate_epoch_interval: int = 5,
                  verbose: bool = True,
-                 train_transforms=None, val_transforms=None, test_transforms=None,
-                 dims=None):
+                 train_transforms=None, val_transforms=None, test_transforms=None, dims=None):
         super().__init__(train_transforms, val_transforms, test_transforms, dims=dims)
         self.min_nodes: int = min_nodes
         self.max_nodes: int = max_nodes
@@ -81,10 +84,12 @@ class GraphDataModule(LightningDataModule):
         self.nb_valid_graphs: int = nb_valid_graphs
         self.batch_size: int = batch_size
         self.graph_type: str = graph_type
+        self.repeats: int = repeats
         self.regenerate_every_epochs: int = regenerate_epoch_interval
         self.verbose: bool = verbose
         self.train_epochs: int = 0
         self.valid_epochs: int = 0
+        self.workers: int = max(os.cpu_count() - 1, 1)
 
     def prepare_data(self, *args, **kwargs):
         pass
@@ -97,18 +102,19 @@ class GraphDataModule(LightningDataModule):
         if self.train_epochs % self.regenerate_every_epochs == 0:
             print(f'Generating {self.nb_train_graphs} new Train graphs - [{self.min_nodes}-{self.max_nodes}]...')
             self.train_dataset = RandomGraphs(min_nodes=self.min_nodes, max_nodes=self.max_nodes,
-                                              nb_graphs=self.nb_train_graphs, verbose=self.verbose)
+                                              nb_graphs=self.nb_train_graphs, repeats=self.repeats,
+                                              verbose=self.verbose)
         self.train_epochs += 1
-        return DataLoader(self.train_dataset.graphs, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(self.train_dataset.graphs, batch_size=self.batch_size, shuffle=True, num_workers=self.workers)
 
     def val_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
         """ Generate random graphs and return the loader for those """
         if self.valid_epochs % self.regenerate_every_epochs == 0:
             print(f'Generating {self.nb_valid_graphs} new Validation graphs - [{self.min_nodes}-{self.max_nodes}]...')
             self.valid_dataset = RandomGraphs(min_nodes=self.min_nodes, max_nodes=self.max_nodes,
-                                              nb_graphs=self.nb_valid_graphs, verbose=self.verbose)
+                                              nb_graphs=self.nb_valid_graphs, repeats=1, verbose=self.verbose)
         self.valid_epochs += 1
-        return DataLoader(self.valid_dataset.graphs, batch_size=1, shuffle=False)
+        return DataLoader(self.valid_dataset.graphs, batch_size=1, shuffle=False, num_workers=self.workers)
 
     def test_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
         pass

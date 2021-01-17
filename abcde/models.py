@@ -101,9 +101,9 @@ class ABCDE(BetweennessCentralityEstimator):
 
         self.node_linear = nn.Linear(1, 32)
         self.linear1 = nn.Linear(32, 128)
-        self.convolutions = nn.ModuleList([GCNConv(128, 128, improved=True) for _ in range(nb_gcn_cycles)])
+        # self.convolutions = nn.ModuleList([GCNConv(128, 128, improved=True) for _ in range(nb_gcn_cycles)])
         # self.conv = GATConv(128, out_channels=128 // 4, heads=4, negative_slope=0.3)
-        # self.conv = GCNConv(128, 128)
+        self.conv = GCNConv(128, 128, improved=True)
         self.gru = nn.GRUCell(128, 128)
         self.linear2 = nn.Linear(128 + 32 + 1, 64)
         self.linear3 = nn.Linear(64, 1)
@@ -112,18 +112,18 @@ class ABCDE(BetweennessCentralityEstimator):
         node_features, edge_index = inputs.x, inputs.edge_index
         node_features = self.node_linear(node_features)
         node_features = F.leaky_relu(node_features, negative_slope=0.3)
-        node_features = F.normalize(node_features, p=2, dim=-1)
+        # node_features = F.normalize(node_features, p=2, dim=-1)
 
         x = self.linear1(node_features)
         x = F.leaky_relu(x, negative_slope=0.3)
-        x = F.normalize(x, p=2, dim=-1)
+        # x = F.normalize(x, p=2, dim=-1)
         states = [x]
         # for conv in self.convolutions:
-        for conv in self.convolutions:
+        for rep in range(self.nb_gcn_cycles):
             drop_edge, _ = dropout_adj(edge_index, p=0.3, force_undirected=True, training=self.training)
-            x = conv(x, drop_edge)
+            x = self.conv(x, drop_edge)
             x = self.gru(x, states[-1])
-            x = F.normalize(x, p=2, dim=-1)
+            # x = F.normalize(x, p=2, dim=-1)
             states.append(x)
 
         x = torch.cat([states[-1], node_features, inputs.x], dim=-1)
