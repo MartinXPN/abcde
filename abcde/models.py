@@ -5,7 +5,7 @@ from sklearn.metrics import mean_squared_error, max_error
 from torch import nn
 from torch.nn import functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch_geometric.nn import GCNConv, GATConv
+from torch_geometric.nn import GCNConv
 from torch_geometric.utils import dropout_adj
 
 from abcde.loss import PairwiseRankingCrossEntropyLoss

@@ -105,7 +105,7 @@ class GraphDataModule(LightningDataModule):
                                               nb_graphs=self.nb_train_graphs, repeats=self.repeats,
                                               verbose=self.verbose)
         self.train_epochs += 1
-        return DataLoader(self.train_dataset.graphs, batch_size=self.batch_size, shuffle=True, num_workers=self.workers)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.workers)
 
     def val_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
         """ Generate random graphs and return the loader for those """
@@ -114,7 +114,7 @@ class GraphDataModule(LightningDataModule):
             self.valid_dataset = RandomGraphs(min_nodes=self.min_nodes, max_nodes=self.max_nodes,
                                               nb_graphs=self.nb_valid_graphs, repeats=1, verbose=self.verbose)
         self.valid_epochs += 1
-        return DataLoader(self.valid_dataset.graphs, batch_size=1, shuffle=False, num_workers=self.workers)
+        return DataLoader(self.valid_dataset, batch_size=1, shuffle=False, num_workers=self.workers)
 
     def test_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
         pass
