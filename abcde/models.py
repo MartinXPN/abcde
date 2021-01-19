@@ -1,3 +1,5 @@
+from typing import List, Dict
+
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -38,6 +40,7 @@ class BetweennessCentralityEstimator(pl.LightningModule):
         # Compute metrics for each graph in the batch
         graphs = batch.to_data_list() if isinstance(batch, Batch) else [batch]
         start = 0
+        history: List[Dict] = []
         for g in graphs:
             end = start + g.num_nodes
             p = pred[start: end].flatten()
@@ -59,7 +62,9 @@ class BetweennessCentralityEstimator(pl.LightningModule):
                 'val_mse': mean_squared_error(l, p),
                 'val_max_error': max_error(l, p)
             }
+            history.append(res)
             self.log_dict(res)
+        return res
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters())
