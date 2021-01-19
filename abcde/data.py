@@ -70,11 +70,9 @@ class RandomGraphs(Dataset[Data]):
 
         src_ids, tgt_ids = RandomGraphs.gen_vertex_pairs(n=n, size=5 * n)
         edge_index = np.array(graph.to_directed(as_view=True).edges).T
-        res = Data(x=torch.from_numpy(degrees),
-                   y=torch.from_numpy(betweenness),
-                   src_ids=torch.from_numpy(src_ids),
-                   tgt_ids=torch.from_numpy(tgt_ids),
-                   edge_index=torch.from_numpy(edge_index))
+        res = Data(x=torch.from_numpy(degrees), y=torch.from_numpy(betweenness),
+                   src_ids=torch.from_numpy(src_ids), tgt_ids=torch.from_numpy(tgt_ids),
+                   edge_index=torch.from_numpy(edge_index), num_nodes=n)
         return res
 
 
@@ -121,7 +119,7 @@ class GraphDataModule(LightningDataModule):
             self.valid_dataset = RandomGraphs(min_nodes=self.min_nodes, max_nodes=self.max_nodes,
                                               nb_graphs=self.nb_valid_graphs, repeats=1)
         self.valid_epochs += 1
-        return DataLoader(self.valid_dataset, batch_size=1, shuffle=False, num_workers=self.workers)
+        return DataLoader(self.valid_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.workers)
 
     def test_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
         pass

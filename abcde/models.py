@@ -5,6 +5,7 @@ from sklearn.metrics import mean_squared_error, max_error
 from torch import nn
 from torch.nn import functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch_geometric.data import Batch
 from torch_geometric.nn import GCNConv
 from torch_geometric.utils import dropout_adj
 
@@ -30,26 +31,35 @@ class BetweennessCentralityEstimator(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         """ Has to process the graphs one by one as the predictions and labels are sorted at once """
         with torch.no_grad():
-            pred = self(batch).cpu().detach().numpy().flatten()
-            label = batch.y.cpu().detach().numpy().flatten()
+            pred: np.ndarray = self(batch).cpu().detach().numpy()
+            label: np.ndarray = batch.y.cpu().detach().numpy()
+            degrees: np.ndarray = batch.x.cpu().detach().numpy()
 
-        # Vertices with deg(v) <= 1 (leafs) can't have high betweenness-centrality
-        degrees = batch.x.cpu().detach().numpy().flatten()
-        mask = degrees * len(degrees) < 1.1
-        pred[mask] = pred.min() - np.finfo(np.float32).eps
+        # Compute metrics for each graph in the batch
+        graphs = batch.to_data_list() if isinstance(batch, Batch) else [batch]
+        start = 0
+        for g in graphs:
+            end = start + g.num_nodes
+            p = pred[start: end].flatten()
+            l = label[start: end].flatten()
+            d = degrees[start: end].flatten()
+            start = end
 
-        top_pred = np.argsort(-pred)
-        top_label = np.argsort(-label)
-        res = {
-            'val_top_1%': top_k_ranking_accuracy(top_label, top_pred, k=0.01) * 100,
-            'val_top_5%': top_k_ranking_accuracy(top_label, top_pred, k=0.05) * 100,
-            'val_top_10%': top_k_ranking_accuracy(top_label, top_pred, k=0.1) * 100,
-            'val_kendal': kendall_tau(label, pred) * 100,
-            'val_mse': mean_squared_error(label, pred),
-            'val_max_error': max_error(label, pred)
-        }
-        self.log_dict(res)
-        return res
+            # Vertices with deg(v) <= 1 (leafs) can't have high betweenness-centrality
+            mask = d * len(d) < 1.1
+            p[mask] = p.min() - np.finfo(np.float32).eps
+
+            top_pred = np.argsort(-p)
+            top_label = np.argsort(-l)
+            res = {
+                'val_top_1%': top_k_ranking_accuracy(top_label, top_pred, k=0.01) * 100,
+                'val_top_5%': top_k_ranking_accuracy(top_label, top_pred, k=0.05) * 100,
+                'val_top_10%': top_k_ranking_accuracy(top_label, top_pred, k=0.1) * 100,
+                'val_kendal': kendall_tau(l, p) * 100,
+                'val_mse': mean_squared_error(l, p),
+                'val_max_error': max_error(l, p)
+            }
+            self.log_dict(res)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters())
