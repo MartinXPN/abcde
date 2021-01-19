@@ -9,7 +9,7 @@ import pandas as pd
 import torch
 from torch_geometric.data import Data
 
-from abcde.models import ABCDE
+from abcde.models import ABCDE, DrBC
 from abcde.util import display_help_stdout
 
 
@@ -37,7 +37,7 @@ def predict(model_path: Union[str, IO],
                  edge_index=torch.from_numpy(edge_index))
     print('Graph:', graph)
 
-    res = model.validation_step(graph, batch_idx=0)
+    res = model.validation_step(graph, batch_idx=0)[0]
     end = time.time()
     res['run_time'] = end - start,
     pprint(res, sort_dicts=False)

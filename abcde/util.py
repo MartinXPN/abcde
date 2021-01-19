@@ -2,7 +2,8 @@ import os
 import random
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from threading import Thread
+from typing import Optional, Any
 
 import numpy as np
 import torch
@@ -43,3 +44,18 @@ class ExperimentSetup:
             latest.symlink_to(self.experiment_path.absolute(), target_is_directory=True)
 
         print(f'Logging experiments at: `{self.experiment_path.absolute()}`')
+
+
+class ThreadWithReturnValue(Thread):
+    def __init__(self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None):
+        super().__init__(group, target, name, args, kwargs, daemon=daemon)
+        self._return = None
+
+    # noinspection PyUnresolvedReferences
+    def run(self):
+        if self._target is not None:
+            self._return = self._target(*self._args, **self._kwargs)
+
+    def join(self, timeout: Optional[float] = None) -> Any:
+        super().join(timeout)
+        return self._return

@@ -30,7 +30,7 @@ class BetweennessCentralityEstimator(pl.LightningModule):
         self.log('train_loss', loss)
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx: int) -> List[Dict[str, float]]:
         """ Has to process the graphs one by one as the predictions and labels are sorted at once """
         with torch.no_grad():
             pred: np.ndarray = self(batch).cpu().detach().numpy()
@@ -64,7 +64,7 @@ class BetweennessCentralityEstimator(pl.LightningModule):
             }
             history.append(res)
             self.log_dict(res)
-        return res
+        return history
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters())
@@ -79,6 +79,7 @@ class BetweennessCentralityEstimator(pl.LightningModule):
 class DrBC(BetweennessCentralityEstimator):
     def __init__(self, nb_gcn_cycles: int = 5, lr_reduce_patience: int = 1):
         super().__init__(lr_reduce_patience=lr_reduce_patience)
+        self.save_hyperparameters()
         self.nb_gcn_cycles: int = nb_gcn_cycles
 
         self.node_linear = nn.Linear(1, 128)
@@ -112,6 +113,7 @@ class DrBC(BetweennessCentralityEstimator):
 class ABCDE(BetweennessCentralityEstimator):
     def __init__(self, nb_gcn_cycles: int = 5, lr_reduce_patience: int = 1):
         super().__init__(lr_reduce_patience=lr_reduce_patience)
+        self.save_hyperparameters()
         self.nb_gcn_cycles: int = nb_gcn_cycles
 
         self.node_linear = nn.Linear(1, 32)

@@ -14,6 +14,7 @@ if __name__ == '__main__':
     experiment = ExperimentSetup(name='drbc', create_latest=True, long_description="""
     Vanilla DrBC
     """)
+    torch.multiprocessing.set_sharing_strategy('file_system')
 
     loggers = [
         CSVLogger(experiment.log_dir, name='history'),
@@ -21,7 +22,7 @@ if __name__ == '__main__':
         # AimLogger(experiment=experiment.name),
     ]
     model = DrBC(nb_gcn_cycles=5, lr_reduce_patience=2)
-    data = GraphDataModule(min_nodes=400, max_nodes=500, nb_train_graphs=100, nb_valid_graphs=100,
+    data = GraphDataModule(min_nodes=4000, max_nodes=5000, nb_train_graphs=160, nb_valid_graphs=240,
                            batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=5,
                            repeats=8)
     trainer = Trainer(logger=loggers,
