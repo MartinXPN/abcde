@@ -81,8 +81,8 @@ class RandomGraphs(Dataset[Data]):
 class GraphDataModule(LightningDataModule):
     train_dataset: RandomGraphs
     valid_dataset: RandomGraphs
-    next_train_worker: ThreadWithReturnValue
-    next_valid_worker: ThreadWithReturnValue
+    next_train_worker: ThreadWithReturnValue[RandomGraphs]
+    next_valid_worker: ThreadWithReturnValue[RandomGraphs]
 
     def __init__(self,
                  min_nodes: int, max_nodes: int, nb_train_graphs: int, nb_valid_graphs: int,

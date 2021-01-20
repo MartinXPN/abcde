@@ -3,7 +3,7 @@ import random
 from datetime import datetime
 from pathlib import Path
 from threading import Thread
-from typing import Optional, Any
+from typing import Optional, TypeVar, Generic
 
 import numpy as np
 import torch
@@ -46,16 +46,24 @@ class ExperimentSetup:
         print(f'Logging experiments at: `{self.experiment_path.absolute()}`')
 
 
-class ThreadWithReturnValue(Thread):
+T = TypeVar('T')
+
+
+class ThreadWithReturnValue(Thread, Generic[T]):
     def __init__(self, group=None, target=None, name=None, args=(), kwargs=None, *, daemon=None):
         super().__init__(group, target, name, args, kwargs, daemon=daemon)
-        self._return = None
+        self._return: Optional[T] = None
 
     # noinspection PyUnresolvedReferences
     def run(self):
-        if self._target is not None:
-            self._return = self._target(*self._args, **self._kwargs)
+        try:
+            if self._target:
+                self._return = self._target(*self._args, **self._kwargs)
+        finally:
+            # Avoid a refcycle if the thread is running a function with
+            # an argument that has a member that points to the thread.
+            del self._target, self._args, self._kwargs
 
-    def join(self, timeout: Optional[float] = None) -> Any:
+    def join(self, timeout: Optional[float] = None) -> T:
         super().join(timeout)
         return self._return
