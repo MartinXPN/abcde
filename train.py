@@ -21,7 +21,7 @@ if __name__ == '__main__':
         TensorBoardLogger(experiment.log_dir, name=experiment.name, default_hp_metric=False),
         # AimLogger(experiment=experiment.name),
     ]
-    model = DrBC(nb_gcn_cycles=5, lr_reduce_patience=2)
+    model = ABCDE(nb_gcn_cycles=5, lr_reduce_patience=2)
     data = GraphDataModule(min_nodes=4000, max_nodes=5000, nb_train_graphs=160, nb_valid_graphs=240,
                            batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=10,
                            repeats=8)
@@ -31,8 +31,7 @@ if __name__ == '__main__':
                       reload_dataloaders_every_epoch=True,
                       callbacks=[
                           EarlyStopping(monitor='val_kendal', patience=5, verbose=True, mode='max'),
-                          ModelCheckpoint(dirpath=experiment.model_save_path, filename='drbc-{epoch:02d}',
-                                          monitor='val_kendal', save_top_k=5, verbose=True, mode='max'),
+                          ModelCheckpoint(dirpath=experiment.model_save_path, filename='drbc-{epoch:02d}-{val_kendal:.2f}', monitor='val_kendal', save_top_k=5, verbose=True, mode='max'),
                           LearningRateMonitor(logging_interval='step'),
                       ])
     trainer.fit(model, datamodule=data)

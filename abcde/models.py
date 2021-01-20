@@ -8,8 +8,7 @@ from torch import nn
 from torch.nn import functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.data import Batch
-from torch_geometric.nn import GCNConv
-from torch_geometric.utils import dropout_adj
+from torch_geometric.nn import GCNConv, LayerNorm
 
 from abcde.loss import PairwiseRankingCrossEntropyLoss
 from abcde.metrics import kendall_tau, top_k_ranking_accuracy
@@ -117,34 +116,38 @@ class ABCDE(BetweennessCentralityEstimator):
         self.nb_gcn_cycles: int = nb_gcn_cycles
 
         self.node_linear = nn.Linear(1, 32)
-        self.linear1 = nn.Linear(32, 128)
+        self.node_norm = LayerNorm(32)
+        self.transition_linear = nn.Linear(32, 128)
+        self.transition_norm = LayerNorm(128)
+
         # self.convolutions = nn.ModuleList([GCNConv(128, 128, improved=True) for _ in range(nb_gcn_cycles)])
         # self.conv = GATConv(128, out_channels=128 // 4, heads=4, negative_slope=0.3)
         self.conv = GCNConv(128, 128)
         self.gru = nn.GRUCell(128, 128)
+        self.norm = LayerNorm(128)
         self.linear2 = nn.Linear(128 + 32 + 1, 64)
-        self.linear3 = nn.Linear(64, 1)
+        self.out_linear = nn.Linear(64, 1)
 
     def forward(self, inputs):
         node_features, edge_index = inputs.x, inputs.edge_index
-        drop_edge, _ = dropout_adj(edge_index, p=0.3, force_undirected=True, training=self.training)
+        # drop_edge, _ = dropout_adj(edge_index, p=0.3, force_undirected=True, training=self.training)
         node_features = self.node_linear(node_features)
         node_features = F.leaky_relu(node_features, negative_slope=0.3)
-        node_features = F.normalize(node_features, p=2, dim=-1)
+        node_features = self.node_norm(node_features)
 
-        x = self.linear1(node_features)
+        x = self.transition_linear(node_features)
         x = F.leaky_relu(x, negative_slope=0.3)
-        x = F.normalize(x, p=2, dim=-1)
+        x = self.transition_norm(x)
         states = [x]
         # for conv in self.convolutions:
         for rep in range(self.nb_gcn_cycles):
-            x = self.conv(x, drop_edge)
+            x = self.conv(x, edge_index)
             x = self.gru(x, states[-1])
-            x = F.normalize(x, p=2, dim=-1)
+            x = self.norm(x)
             states.append(x)
 
         x = torch.cat([states[-1], node_features, inputs.x], dim=-1)
         x = self.linear2(x)
         x = F.leaky_relu(x, negative_slope=0.3)
-        x = self.linear3(x)
+        x = self.out_linear(x)
         return x
