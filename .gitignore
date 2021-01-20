@@ -1,12 +1,15 @@
-# Aim
-.aim/
-
 # Ignore models folder
 checkpoints/
+models/
 
 # Ignore all the experiments
 experiments/
 
+# Aim
+.aim/
+
+# Ignore ipython notebooks
+*.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -17,6 +20,7 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+.pip_cache/
 .Python
 build/
 develop-eggs/
