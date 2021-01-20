@@ -23,7 +23,7 @@ if __name__ == '__main__':
     ]
     model = DrBC(nb_gcn_cycles=5, lr_reduce_patience=2)
     data = GraphDataModule(min_nodes=4000, max_nodes=5000, nb_train_graphs=160, nb_valid_graphs=240,
-                           batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=5,
+                           batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=10,
                            repeats=8)
     trainer = Trainer(logger=loggers,
                       gpus=-1 if torch.cuda.is_available() else None, auto_select_gpus=True, log_gpu_memory='all',

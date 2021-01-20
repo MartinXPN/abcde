@@ -16,7 +16,7 @@ from abcde.util import display_help_stdout
 def predict(model_path: Union[str, IO],
             data_test:  Union[str, IO],
             label_file: Union[str, IO]):
-    model = ABCDE.load_from_checkpoint(model_path)
+    model = DrBC.load_from_checkpoint(model_path)
     model.eval()
     model.freeze()
 
