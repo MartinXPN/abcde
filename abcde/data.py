@@ -1,7 +1,6 @@
 import os
 import time
 from dataclasses import dataclass, field
-from itertools import repeat
 from typing import List, Any, Union, Optional, Tuple
 
 import networkx as nx
@@ -33,7 +32,9 @@ class RandomGraphs(Dataset[Data]):
         start = time.time()
         with Pool(self.workers) as p:
             nb_nodes = np.random.randint(self.min_nodes, self.max_nodes, size=self.nb_graphs)
-            self.graphs = p.starmap(self.generate_graph, zip(nb_nodes, repeat(self.graph_type)))
+            # 'small-world', 'barabasi_albert', p=[0.3, 0.3, 0.4]
+            graph_types = np.random.choice(['powerlaw'], size=self.nb_graphs, replace=True)
+            self.graphs = p.starmap(self.generate_graph, zip(nb_nodes, graph_types))
         print(f'Generated {len(self.graphs)} graphs in {time.time() - start}s')
 
     def __getitem__(self, index) -> Data:
@@ -52,10 +53,10 @@ class RandomGraphs(Dataset[Data]):
     @staticmethod
     def generate_graph(n: int, graph_type: str) -> Data:
         # Generate a random graph with NetworkX
-        if graph_type == 'erdos_renyi':         graph = nx.erdos_renyi_graph(n=n, p=0.15)
-        elif graph_type == 'small-world':       graph = nx.connected_watts_strogatz_graph(n=n, k=8, p=0.1)
-        elif graph_type == 'barabasi_albert':   graph = nx.barabasi_albert_graph(n=n, m=4)
-        elif graph_type == 'powerlaw':          graph = nx.powerlaw_cluster_graph(n=n, m=4, p=0.05)
+        if graph_type == 'erdos_renyi':         graph = nx.erdos_renyi_graph(n, p=4 / n)
+        elif graph_type == 'small-world':       graph = nx.connected_watts_strogatz_graph(n, k=4, p=0.1)
+        elif graph_type == 'barabasi_albert':   graph = nx.barabasi_albert_graph(n, m=4)
+        elif graph_type == 'powerlaw':          graph = nx.powerlaw_cluster_graph(n, m=4, p=0.05)
         else:
             raise ValueError(f'{graph_type} graph type is not supported yet')
 

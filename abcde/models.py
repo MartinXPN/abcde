@@ -1,5 +1,6 @@
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
+import inspect
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -12,6 +13,15 @@ from torch_geometric.nn import GCNConv, LayerNorm
 
 from abcde.loss import PairwiseRankingCrossEntropyLoss
 from abcde.metrics import kendall_tau, top_k_ranking_accuracy
+
+
+class MultiArgumentSequential(nn.Sequential):
+    def forward(self, x, **kwargs):
+        for module in self:
+            argument_names = inspect.getfullargspec(module.forward)[0]
+            expected = {key: val for key, val in kwargs.items() if key in argument_names}
+            x = module(x, **expected)
+        return x
 
 
 class BetweennessCentralityEstimator(pl.LightningModule):
@@ -66,8 +76,8 @@ class BetweennessCentralityEstimator(pl.LightningModule):
         return history
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters())
-        scheduler = ReduceLROnPlateau(optimizer, mode='max', patience=self.lr_reduce_patience, factor=0.7)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        scheduler = ReduceLROnPlateau(optimizer, mode='max', patience=self.lr_reduce_patience, factor=0.7, min_lr=1e-5)
         return {
             'optimizer': optimizer,
             'lr_scheduler': scheduler,
@@ -110,44 +120,63 @@ class DrBC(BetweennessCentralityEstimator):
 
 
 class ABCDE(BetweennessCentralityEstimator):
-    def __init__(self, nb_gcn_cycles: int = 5, lr_reduce_patience: int = 1):
+    def __init__(self, nb_gcn_cycles: Tuple[int, ...], conv_sizes: Tuple[int, ...],
+                 lr_reduce_patience: int = 1, dropout: float = 0.):
         super().__init__(lr_reduce_patience=lr_reduce_patience)
+        print('gcn cycles:', nb_gcn_cycles)
+        print('conv sizes:', conv_sizes)
         self.save_hyperparameters()
-        self.nb_gcn_cycles: int = nb_gcn_cycles
+        self.nb_gcn_cycles: Tuple[int, ...] = nb_gcn_cycles
+        self.conv_sizes: Tuple[int, ...] = conv_sizes
+        self.dropout: float = dropout
 
-        self.node_linear = nn.Linear(1, 32)
-        self.node_norm = LayerNorm(32)
-        self.transition_linear = nn.Linear(32, 128)
-        self.transition_norm = LayerNorm(128)
+        self.node_mlp = nn.Sequential(
+            nn.Linear(1, 16),
+            LayerNorm(16),
+            nn.LeakyReLU(negative_slope=0.3),
+            nn.Dropout(self.dropout),
+        )
 
-        # self.convolutions = nn.ModuleList([GCNConv(128, 128, improved=True) for _ in range(nb_gcn_cycles)])
-        # self.conv = GATConv(128, out_channels=128 // 4, heads=4, negative_slope=0.3)
-        self.conv = GCNConv(128, 128)
-        self.gru = nn.GRUCell(128, 128)
-        self.norm = LayerNorm(128)
-        self.linear2 = nn.Linear(128 + 32 + 1, 64)
-        self.out_linear = nn.Linear(64, 1)
+        self.conv_blocks = nn.ModuleList()
+        self.transitions = nn.ModuleList()
+        transition_size = 16
+        for gcn_cycles, conv_size in zip(nb_gcn_cycles, conv_sizes):
+            self.transitions.append(nn.Sequential(
+                nn.Linear(transition_size, conv_size),
+                LayerNorm(conv_size),
+                nn.LeakyReLU(negative_slope=0.3),
+                nn.Dropout(self.dropout),
+            ))
+            transition_size += conv_size
+            self.conv_blocks.append(nn.ModuleList([MultiArgumentSequential(
+                    GCNConv(conv_size, conv_size),
+                    nn.LeakyReLU(negative_slope=0.3),
+                    LayerNorm(conv_size),
+                    nn.Dropout(self.dropout),
+                ) for _ in range(gcn_cycles)
+            ]))
+
+        self.out_mlp = nn.Sequential(
+            nn.Linear(transition_size, 32),
+            nn.LeakyReLU(negative_slope=0.3),
+            LayerNorm(32),
+            nn.Dropout(self.dropout),
+            nn.Linear(32, 1),
+        )
 
     def forward(self, inputs):
         node_features, edge_index = inputs.x, inputs.edge_index
         # drop_edge, _ = dropout_adj(edge_index, p=0.3, force_undirected=True, training=self.training)
-        node_features = self.node_linear(node_features)
-        node_features = F.leaky_relu(node_features, negative_slope=0.3)
-        node_features = self.node_norm(node_features)
+        prev_block_out = self.node_mlp(node_features)
 
-        x = self.transition_linear(node_features)
-        x = F.leaky_relu(x, negative_slope=0.3)
-        x = self.transition_norm(x)
-        states = [x]
-        # for conv in self.convolutions:
-        for rep in range(self.nb_gcn_cycles):
-            x = self.conv(x, edge_index)
-            x = self.gru(x, states[-1])
-            x = self.norm(x)
-            states.append(x)
+        for transition, convolutions in zip(self.transitions, self.conv_blocks):
+            x = transition(prev_block_out)
+            states = [x]
+            for conv in convolutions:
+                x = conv(x, edge_index=edge_index)
+                states.append(x)
+            x = torch.amax(torch.stack(states), dim=0)
+            prev_block_out = torch.cat([x, prev_block_out], dim=-1)
 
-        x = torch.cat([states[-1], node_features, inputs.x], dim=-1)
-        x = self.linear2(x)
-        x = F.leaky_relu(x, negative_slope=0.3)
-        x = self.out_linear(x)
-        return x
+        out = self.out_mlp(prev_block_out)
+        return out

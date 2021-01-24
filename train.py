@@ -4,24 +4,27 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, Learning
 from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
 
 from abcde.data import GraphDataModule
-from abcde.models import ABCDE, DrBC
+from abcde.models import ABCDE
 from abcde.util import fix_random_seed, ExperimentSetup
 
 
-if __name__ == '__main__':
-    # Fix the seed for reproducibility
-    fix_random_seed(42)
-    experiment = ExperimentSetup(name='drbc', create_latest=True, long_description="""
-    Vanilla DrBC
-    """)
-    torch.multiprocessing.set_sharing_strategy('file_system')
+# Fix the seed for reproducibility
+fix_random_seed(42)
+experiment = ExperimentSetup(name='deep', create_latest=True, long_description="""
+Graphs are only of 'powerlaw' type.
+Use unique convolutions.
+Use blocks of convolutions followed with max pooling and skip connections
+""")
+torch.multiprocessing.set_sharing_strategy('file_system')
 
+if __name__ == '__main__':
     loggers = [
         CSVLogger(experiment.log_dir, name='history'),
         TensorBoardLogger(experiment.log_dir, name=experiment.name, default_hp_metric=False),
         # AimLogger(experiment=experiment.name),
     ]
-    model = ABCDE(nb_gcn_cycles=5, lr_reduce_patience=2)
+    model = ABCDE(nb_gcn_cycles=(4, 4, 6, 6, 8),
+                  conv_sizes=(64, 64, 32, 32, 16), lr_reduce_patience=2, dropout=0.1)
     data = GraphDataModule(min_nodes=4000, max_nodes=5000, nb_train_graphs=160, nb_valid_graphs=240,
                            batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=10,
                            repeats=8)
@@ -31,7 +34,7 @@ if __name__ == '__main__':
                       reload_dataloaders_every_epoch=True,
                       callbacks=[
                           EarlyStopping(monitor='val_kendal', patience=5, verbose=True, mode='max'),
-                          ModelCheckpoint(dirpath=experiment.model_save_path, filename='drbc-{epoch:02d}-{val_kendal:.2f}', monitor='val_kendal', save_top_k=5, verbose=True, mode='max'),
+                          ModelCheckpoint(dirpath=experiment.model_save_path, filename='deep-{epoch:02d}-{val_kendal:.2f}', monitor='val_kendal', save_top_k=5, verbose=True, mode='max'),
                           LearningRateMonitor(logging_interval='step'),
                       ])
     trainer.fit(model, datamodule=data)
