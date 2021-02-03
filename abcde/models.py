@@ -1,6 +1,6 @@
+import inspect
 from typing import List, Dict, Tuple
 
-import inspect
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -11,6 +11,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.data import Batch
 from torch_geometric.nn import GCNConv, LayerNorm
 
+from abcde.dropout import dropout_adj
 from abcde.loss import PairwiseRankingCrossEntropyLoss
 from abcde.metrics import kendall_tau, top_k_ranking_accuracy
 
@@ -120,14 +121,17 @@ class DrBC(BetweennessCentralityEstimator):
 
 
 class ABCDE(BetweennessCentralityEstimator):
-    def __init__(self, nb_gcn_cycles: Tuple[int, ...], conv_sizes: Tuple[int, ...],
+    def __init__(self, nb_gcn_cycles: Tuple[int, ...], conv_sizes: Tuple[int, ...], drops: Tuple[float, ...],
                  lr_reduce_patience: int = 1, dropout: float = 0.):
         super().__init__(lr_reduce_patience=lr_reduce_patience)
         print('gcn cycles:', nb_gcn_cycles)
         print('conv sizes:', conv_sizes)
+        print('drops:', drops)
+        assert len(nb_gcn_cycles) == len(conv_sizes) == len(drops)
         self.save_hyperparameters()
         self.nb_gcn_cycles: Tuple[int, ...] = nb_gcn_cycles
         self.conv_sizes: Tuple[int, ...] = conv_sizes
+        self.drops: Tuple[float, ...] = drops
         self.dropout: float = dropout
 
         self.node_mlp = nn.Sequential(
@@ -156,24 +160,25 @@ class ABCDE(BetweennessCentralityEstimator):
                 ) for _ in range(gcn_cycles)
             ]))
 
+        print(f'Largest Linear: {transition_size} x 32')
         self.out_mlp = nn.Sequential(
             nn.Linear(transition_size, 32),
-            nn.LeakyReLU(negative_slope=0.3),
             LayerNorm(32),
+            nn.LeakyReLU(negative_slope=0.3),
             nn.Dropout(self.dropout),
             nn.Linear(32, 1),
         )
 
     def forward(self, inputs):
         node_features, edge_index = inputs.x, inputs.edge_index
-        # drop_edge, _ = dropout_adj(edge_index, p=0.3, force_undirected=True, training=self.training)
         prev_block_out = self.node_mlp(node_features)
 
-        for transition, convolutions in zip(self.transitions, self.conv_blocks):
+        for transition, convolutions, drop in zip(self.transitions, self.conv_blocks, self.drops):
+            drop_edge, _ = dropout_adj(edge_index, p=drop, force_undirected=True, training=self.training)
             x = transition(prev_block_out)
             states = [x]
             for conv in convolutions:
-                x = conv(x, edge_index=edge_index)
+                x = conv(x, edge_index=drop_edge)
                 states.append(x)
             x = torch.amax(torch.stack(states), dim=0)
             prev_block_out = torch.cat([x, prev_block_out], dim=-1)
