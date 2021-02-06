@@ -31,7 +31,7 @@ class RandomGraphs(Dataset[Data]):
         workers: int = max(os.cpu_count(), 1)
 
         if save_path is not None and save_path.exists():
-            print('Found existing dataset at', save_path, 'loading it...')
+            print(f'Found existing dataset at {save_path} => loading it...')
             self.graphs = torch.load(save_path)
             return
 
