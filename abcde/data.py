@@ -1,6 +1,7 @@
 import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, InitVar
+from pathlib import Path
 from typing import List, Any, Union, Optional, Tuple
 
 import networkx as nx
@@ -23,19 +24,28 @@ class RandomGraphs(Dataset[Data]):
     nb_graphs: int = 1
     repeats: int = 1
     graphs: List[Data] = field(default_factory=list)
+    save_path: InitVar[Union[Path, None]] = None
 
-    def __post_init__(self):
+    def __post_init__(self, save_path):
         assert self.repeats >= 1
-        self.used = np.zeros(self.nb_graphs, dtype='int32')
-        self.workers: int = max(os.cpu_count(), 1)
+        workers: int = max(os.cpu_count(), 1)
+
+        if save_path is not None and save_path.exists():
+            print('Found existing dataset at', save_path, 'loading it...')
+            self.graphs = torch.load(save_path)
+            return
 
         start = time.time()
-        with Pool(self.workers) as p:
+        with Pool(workers) as p:
             nb_nodes = np.random.randint(self.min_nodes, self.max_nodes, size=self.nb_graphs)
             # 'small-world', 'barabasi_albert', p=[0.3, 0.3, 0.4]
-            graph_types = np.random.choice(['powerlaw'], size=self.nb_graphs, replace=True)
+            graph_types = np.random.choice([self.graph_type], size=self.nb_graphs, replace=True)
             self.graphs = p.starmap(self.generate_graph, zip(nb_nodes, graph_types))
+
         print(f'Generated {len(self.graphs)} graphs in {time.time() - start}s')
+        if save_path is not None:
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            torch.save(self.graphs, save_path)
 
     def __getitem__(self, index) -> Data:
         index %= len(self.graphs)
@@ -88,6 +98,7 @@ class GraphDataModule(LightningDataModule):
     def __init__(self,
                  min_nodes: int, max_nodes: int, nb_train_graphs: int, nb_valid_graphs: int,
                  batch_size: int, graph_type: str = 'powerlaw', repeats: int = 8, regenerate_epoch_interval: int = 5,
+                 cache_dir: Union[str, os.PathLike, None] = None,
                  train_transforms=None, val_transforms=None, test_transforms=None, dims=None):
         super().__init__(train_transforms, val_transforms, test_transforms, dims=dims)
         self.min_nodes: int = min_nodes
@@ -98,6 +109,7 @@ class GraphDataModule(LightningDataModule):
         self.graph_type: str = graph_type
         self.repeats: int = repeats
         self.regenerate_every_epochs: int = regenerate_epoch_interval
+        self.cache_dir: Path = Path(cache_dir)
         self.train_epochs: int = 0
         self.valid_epochs: int = 0
         self.workers: int = max(os.cpu_count() - 1, 1)
@@ -109,9 +121,10 @@ class GraphDataModule(LightningDataModule):
         pass
 
     @staticmethod
-    def create_dataset(min_nodes: int, max_nodes: int, graph_type: str, nb_graphs: int, repeats: int) -> RandomGraphs:
+    def create_dataset(min_nodes: int, max_nodes: int, graph_type: str,
+                       nb_graphs: int, repeats: int, save_path: Path) -> RandomGraphs:
         return RandomGraphs(min_nodes=min_nodes, max_nodes=max_nodes, graph_type=graph_type,
-                            nb_graphs=nb_graphs, repeats=repeats)
+                            nb_graphs=nb_graphs, repeats=repeats, save_path=save_path)
 
     def train_dataloader(self, *args, **kwargs) -> DataLoader:
         """
@@ -119,15 +132,17 @@ class GraphDataModule(LightningDataModule):
         If it's the initial epoch start the generation on the main thread.
         Otherwise start the generation on s separate one so that the training/main thread is not blocked
         """
+        dataset_path = self.cache_dir / f'train_ep{self.train_epochs}_' \
+                                        f'{self.min_nodes}_{self.max_nodes}_{self.graph_type}.data'
         if self.train_epochs % self.regenerate_every_epochs == 0:
             print(f'Generating {self.nb_train_graphs} new Train graphs - [{self.min_nodes}-{self.max_nodes}]...')
             self.train_dataset = self.next_train_worker.join() if self.train_epochs != 0 else RandomGraphs(
                 min_nodes=self.min_nodes, max_nodes=self.max_nodes, graph_type=self.graph_type,
-                nb_graphs=self.nb_train_graphs, repeats=self.repeats
+                nb_graphs=self.nb_train_graphs, repeats=self.repeats, save_path=dataset_path,
             )
-            self.next_train_worker = ThreadWithReturnValue(target=self.create_dataset,
+            self.next_train_worker = ThreadWithReturnValue(target=GraphDataModule.create_dataset,
                                                            args=(self.min_nodes, self.max_nodes, self.graph_type,
-                                                                 self.nb_train_graphs, self.repeats))
+                                                                 self.nb_train_graphs, self.repeats, dataset_path))
             self.next_train_worker.start()
 
         self.train_epochs += 1
@@ -139,15 +154,17 @@ class GraphDataModule(LightningDataModule):
         If it's the initial epoch start the generation on the main thread.
         Otherwise start the generation on s separate one so that the training/main thread is not blocked
         """
+        dataset_path = self.cache_dir / f'valid_ep{self.valid_epochs}_' \
+                                        f'{self.min_nodes}_{self.max_nodes}_{self.graph_type}.data'
         if self.valid_epochs % self.regenerate_every_epochs == 0:
             print(f'Generating {self.nb_valid_graphs} new Validation graphs - [{self.min_nodes}-{self.max_nodes}]...')
             self.valid_dataset = self.next_valid_worker.join() if self.valid_epochs != 0 else RandomGraphs(
                 min_nodes=self.min_nodes, max_nodes=self.max_nodes, graph_type=self.graph_type,
-                nb_graphs=self.nb_valid_graphs, repeats=1
+                nb_graphs=self.nb_valid_graphs, repeats=1, save_path=dataset_path,
             )
-            self.next_valid_worker = ThreadWithReturnValue(target=self.create_dataset,
+            self.next_valid_worker = ThreadWithReturnValue(target=GraphDataModule.create_dataset,
                                                            args=(self.min_nodes, self.max_nodes, self.graph_type,
-                                                                 self.nb_valid_graphs, 1))
+                                                                 self.nb_valid_graphs, 1, dataset_path))
             self.next_valid_worker.start()
 
         self.valid_epochs += 1

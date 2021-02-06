@@ -1,4 +1,8 @@
+from pathlib import Path
+
 import torch
+from aim.sdk.adapters.pytorch_lightning import AimLogger
+from knockknock import telegram_sender
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
 from pytorch_lightning.loggers import TensorBoardLogger, CSVLogger
@@ -22,23 +26,23 @@ if __name__ == '__main__':
     loggers = [
         CSVLogger(experiment.log_dir, name='history'),
         TensorBoardLogger(experiment.log_dir, name=experiment.name, default_hp_metric=False),
-        # AimLogger(experiment=experiment.name),
+        AimLogger(experiment=experiment.name),
     ]
-    # For previous best changes needed: conv_sizes=(64, 64, 32, 32, 16, 16), drops=(0, 0, 0, 0, 0, 0)
-    model = ABCDE(nb_gcn_cycles=(4, 4, 6, 6, 8, 8),
-                  conv_sizes=(48, 48, 32, 32, 24, 24),
-                  drops=(0.5, 0.4, 0.3, 0.2, 0.1, 0),
+    # Previous best: nb_gcn_cycles=(4, 4, 6, 6, 8), conv_sizes=(64, 64, 32, 32, 16), drops=(0, 0, 0, 0, 0)
+    model = ABCDE(nb_gcn_cycles=(4, 4, 6, 6, 8),
+                  conv_sizes=(64, 64, 32, 32, 16),
+                  drops=(0, 0, 0, 0, 0),
                   lr_reduce_patience=2, dropout=0.1)
     data = GraphDataModule(min_nodes=4000, max_nodes=5000, nb_train_graphs=160, nb_valid_graphs=240,
-                           batch_size=16, graph_type='powerlaw', regenerate_epoch_interval=10,
-                           repeats=8)
+                           batch_size=16, graph_type='powerlaw', repeats=8, regenerate_epoch_interval=10,
+                           cache_dir=Path('datasets') / 'cache')
     trainer = Trainer(logger=loggers,
-                      gpus=-1 if torch.cuda.is_available() else None, auto_select_gpus=True, log_gpu_memory='all',
+                      gpus=-1 if torch.cuda.is_available() else None, auto_select_gpus=True,
                       max_epochs=100, terminate_on_nan=True, enable_pl_optimizer=True,
                       reload_dataloaders_every_epoch=True,
                       callbacks=[
-                          EarlyStopping(monitor='val_kendal', patience=5, verbose=True, mode='max'),
+                          EarlyStopping(monitor='val_kendal', patience=7, verbose=True, mode='max'),
                           ModelCheckpoint(dirpath=experiment.model_save_path, filename='drop-{epoch:02d}-{val_kendal:.2f}', monitor='val_kendal', save_top_k=5, verbose=True, mode='max'),
-                          LearningRateMonitor(logging_interval='step'),
+                          LearningRateMonitor(logging_interval='epoch'),
                       ])
     trainer.fit(model, datamodule=data)
