@@ -45,5 +45,4 @@ if __name__ == '__main__':
                           ModelCheckpoint(dirpath=experiment.model_save_path, filename='drop-{epoch:02d}-{val_kendal:.2f}', monitor='val_kendal', save_top_k=5, verbose=True, mode='max'),
                           LearningRateMonitor(logging_interval='epoch'),
                       ])
-    trainer.fit = telegram_sender(token='1653878275:AAEIr-mLt9-SSAyYPon1n-CgFQpINjUWHDw', chat_id=695404691)(trainer.fit)
     trainer.fit(model, datamodule=data)
