@@ -26,6 +26,7 @@ setup(
         'tqdm>=4.54.1',
         'fire>=0.3.1',
         'aim>=2.1.4',
+        'wandb>=0.10.17',
         'knockknock>=0.1.8.1',
     ],
     extras_require={

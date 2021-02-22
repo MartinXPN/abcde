@@ -77,7 +77,7 @@ class BetweennessCentralityEstimator(pl.LightningModule):
         return history
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-2)
         scheduler = ReduceLROnPlateau(optimizer, mode='max', patience=self.lr_reduce_patience, factor=0.7, min_lr=1e-5)
         return {
             'optimizer': optimizer,
