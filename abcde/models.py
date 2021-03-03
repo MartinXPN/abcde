@@ -77,8 +77,8 @@ class BetweennessCentralityEstimator(pl.LightningModule):
         return history
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-2)
-        scheduler = ReduceLROnPlateau(optimizer, mode='max', patience=self.lr_reduce_patience, factor=0.7, min_lr=1e-5)
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
+        scheduler = ReduceLROnPlateau(optimizer, mode='max', patience=self.lr_reduce_patience, factor=0.5, min_lr=1e-5)
         return {
             'optimizer': optimizer,
             'lr_scheduler': scheduler,
@@ -137,7 +137,7 @@ class ABCDE(BetweennessCentralityEstimator):
         self.node_mlp = nn.Sequential(
             nn.Linear(1, 16),
             LayerNorm(16),
-            nn.LeakyReLU(negative_slope=0.3),
+            nn.PReLU(),
             nn.Dropout(self.dropout),
         )
 
@@ -148,13 +148,13 @@ class ABCDE(BetweennessCentralityEstimator):
             self.transitions.append(nn.Sequential(
                 nn.Linear(transition_size, conv_size),
                 LayerNorm(conv_size),
-                nn.LeakyReLU(negative_slope=0.3),
+                nn.PReLU(),
                 nn.Dropout(self.dropout),
             ))
             transition_size += conv_size
             self.conv_blocks.append(nn.ModuleList([MultiArgumentSequential(
                     GCNConv(conv_size, conv_size),
-                    nn.LeakyReLU(negative_slope=0.3),
+                    nn.PReLU(),
                     LayerNorm(conv_size),
                     nn.Dropout(self.dropout),
                 ) for _ in range(gcn_cycles)
@@ -163,7 +163,7 @@ class ABCDE(BetweennessCentralityEstimator):
         print(f'Largest Linear: {transition_size} x 32')
         self.out_mlp = nn.Sequential(
             nn.Linear(transition_size, 32),
-            nn.LeakyReLU(negative_slope=0.3),
+            nn.PReLU(),
             LayerNorm(32),
             nn.Dropout(self.dropout),
             nn.Linear(32, 1),

@@ -63,10 +63,12 @@ class RandomGraphs(Dataset[Data]):
     @staticmethod
     def generate_graph(n: int, graph_type: str) -> Data:
         # Generate a random graph with NetworkX
+        m = np.random.randint(low=1, high=7)
+        p = 0.01 if m > 4 else 0.06  # np.random.uniform(low=0.02, high=0.08)
         if graph_type == 'erdos_renyi':         graph = nx.erdos_renyi_graph(n, p=4 / n)
         elif graph_type == 'small-world':       graph = nx.connected_watts_strogatz_graph(n, k=4, p=0.1)
-        elif graph_type == 'barabasi_albert':   graph = nx.barabasi_albert_graph(n, m=4)
-        elif graph_type == 'powerlaw':          graph = nx.powerlaw_cluster_graph(n, m=4, p=0.05)
+        elif graph_type == 'barabasi_albert':   graph = nx.barabasi_albert_graph(n, m)
+        elif graph_type == 'powerlaw':          graph = nx.powerlaw_cluster_graph(n, m, p=p)
         else:
             raise ValueError(f'{graph_type} graph type is not supported yet')
 
