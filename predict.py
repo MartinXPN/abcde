@@ -88,8 +88,8 @@ def evaluate_all(model_path: Union[str, IO],
     for dataset in ['com-youtube', 'amazon', 'cit-Patents', 'dblp', 'com-lj']:
         print('Evaluating the dataset:', dataset)
         real(model_path=model_path,
-             data_test=real_dir / dataset + '.txt',
-             label_file=real_dir / dataset + '_score.txt')
+             data_test=real_dir / (dataset + '.txt'),
+             label_file=real_dir / (dataset + '_score.txt'))
 
     # Evaluate on synthetic datasets
     synth_dir = Path(datasets_dir) / 'synthetic'

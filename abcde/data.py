@@ -63,8 +63,8 @@ class RandomGraphs(Dataset[Data]):
     @staticmethod
     def generate_graph(n: int, graph_type: str) -> Data:
         # Generate a random graph with NetworkX
-        m = np.random.randint(low=1, high=7)
-        p = 0.01 if m > 4 else 0.06  # np.random.uniform(low=0.02, high=0.08)
+        m = 4  # np.random.randint(low=1, high=7)
+        p = 0.05  # = 0.01 if m > 4 else 0.06  # np.random.uniform(low=0.02, high=0.08)
         if graph_type == 'erdos_renyi':         graph = nx.erdos_renyi_graph(n, p=4 / n)
         elif graph_type == 'small-world':       graph = nx.connected_watts_strogatz_graph(n, k=4, p=0.1)
         elif graph_type == 'barabasi_albert':   graph = nx.barabasi_albert_graph(n, m)
@@ -77,11 +77,11 @@ class RandomGraphs(Dataset[Data]):
         g.add_vertices(graph.nodes())
         g.add_edges(graph.edges())
 
-        betweenness = np.expand_dims(g.betweenness(directed=False), -1)
+        betweenness = np.expand_dims(g.betweenness(directed=False), axis=-1)
 
         degrees = nx.degree_centrality(graph)
         degrees = np.array([degrees[n] for n in range(n)], dtype='float32')
-        degrees = np.expand_dims(degrees, -1)
+        degrees = np.expand_dims(degrees, axis=-1)
 
         src_ids, tgt_ids = RandomGraphs.gen_vertex_pairs(n=n, size=5 * n)
         edge_index = np.array(graph.to_directed(as_view=True).edges).T
