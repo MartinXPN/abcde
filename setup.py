@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='abcde',
-    version='0.0.1',
+    version='1.0.0',
     description='Approximating Betweenness Centrality with Drop Edge',
     author='Martin Mirakyan',
     author_email='mirakyanmartin@gmail.com',

@@ -65,9 +65,9 @@ class BetweennessCentralityEstimator(pl.LightningModule):
             top_pred = np.argsort(-p)
             top_label = np.argsort(-l)
             res = {
-                'val_top_1p': top_k_ranking_accuracy(top_label, top_pred, k=0.01) * 100,
-                'val_top_5p': top_k_ranking_accuracy(top_label, top_pred, k=0.05) * 100,
-                'val_top_10p': top_k_ranking_accuracy(top_label, top_pred, k=0.1) * 100,
+                'val_top_1%': top_k_ranking_accuracy(top_label, top_pred, k=0.01) * 100,
+                'val_top_5%': top_k_ranking_accuracy(top_label, top_pred, k=0.05) * 100,
+                'val_top_10%': top_k_ranking_accuracy(top_label, top_pred, k=0.1) * 100,
                 'val_kendal': kendall_tau(l, p) * 100,
                 'val_mse': mean_squared_error(l, p),
                 'val_max_error': max_error(l, p)
