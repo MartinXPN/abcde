@@ -33,7 +33,7 @@ python predict.py all --model_path experiments/latest/models/best.h5py --dataset
 ```
 
 
-## Obtained results so far [v1.0.0](https://github.com/MartinXPN/abcde/releases/tag/1.0.0) and comparison with the original [DrBC](https://github.com/FFrankyy/DrBC) paper and sampling based benchmarks
+## Obtained results so far [v1.0.0](https://github.com/MartinXPN/abcde/releases/tag/v1.0.0) and comparison with the original [DrBC](https://github.com/FFrankyy/DrBC) paper and sampling based benchmarks
 Obtained results on `Real` datasets (Model was run on 512GB CPU machine with 80 cores):
 
 | Dataset     | ABRA         | RK           | KADABRA | Node2Vec | DrBC   | ABCDE     |
