@@ -4,7 +4,7 @@ from typing import List, Dict, Tuple
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from sklearn.metrics import mean_squared_error, max_error
+from sklearn.metrics import mean_squared_error
 from torch import nn
 from torch.nn import functional as F
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -43,9 +43,11 @@ class BetweennessCentralityEstimator(pl.LightningModule):
     def validation_step(self, batch, batch_idx: int) -> List[Dict[str, float]]:
         """ Has to process the graphs one by one as the predictions and labels are sorted at once """
         with torch.no_grad():
-            pred: np.ndarray = self(batch).cpu().detach().numpy()
-            label: np.ndarray = batch.y.cpu().detach().numpy()
-            degrees: np.ndarray = batch.x.cpu().detach().numpy()
+            pred = self(batch)
+            loss: np.ndarray = self.criterion(pred, batch.y, batch.tgt_ids, batch.src_ids)
+            pred = pred.detach().cpu().numpy()
+            label: np.ndarray = batch.y.detach().cpu().numpy()
+            degrees: np.ndarray = batch.x.detach().cpu().numpy()
 
         # Compute metrics for each graph in the batch
         graphs = batch.to_data_list() if isinstance(batch, Batch) else [batch]
@@ -70,7 +72,7 @@ class BetweennessCentralityEstimator(pl.LightningModule):
                 'val_top_10%': top_k_ranking_accuracy(top_label, top_pred, k=0.1) * 100,
                 'val_kendal': kendall_tau(l, p) * 100,
                 'val_mse': mean_squared_error(l, p),
-                'val_max_error': max_error(l, p)
+                'val_loss': loss,
             }
             history.append(res)
             self.log_dict(res)

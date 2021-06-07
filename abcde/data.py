@@ -2,7 +2,7 @@ import os
 import time
 from dataclasses import dataclass, field, InitVar
 from pathlib import Path
-from typing import List, Any, Union, Optional, Tuple
+from typing import List, Union, Optional, Tuple
 
 import networkx as nx
 import numpy as np
@@ -174,7 +174,3 @@ class GraphDataModule(LightningDataModule):
 
     def test_dataloader(self, *args, **kwargs) -> Union[DataLoader, List[DataLoader]]:
         pass
-
-    def transfer_batch_to_device(self, batch: Any, device: torch.device) -> Any:
-        batch.to(device)
-        return batch
