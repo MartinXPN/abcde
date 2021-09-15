@@ -3,6 +3,8 @@ ABCDE: Approximating Betweenness-Centrality ranking with progressive-DropEdge
 
 This work was published in PeerJ Computer Science journal: https://peerj.com/articles/cs-699/
 
+Link to the Overleaf project (PeerJ draft): https://www.overleaf.com/read/tphdqhycvwfk
+
 
 ### To reproduce the results
 ```shell
@@ -43,7 +45,7 @@ python predict.py all --model_path experiments/latest/models/best.h5py --dataset
 
 ## ABCDE model architecture
 ![](https://i.imgur.com/D0WIjO2.png)
-Each Transition block is a set of {Linear -> LayerNorm -> PRelu -> Dropout} layers, while each GCN is a set of {GCNConv -> PReLU -> LayerNorm -> Dropout}. + symbol is the concatenation operation.
+Each Transition block is a set of {Linear → LayerNorm → PRelu → Dropout} layers, while each GCN is a set of {GCNConv → PReLU → LayerNorm → Dropout}. + symbol is the concatenation operation.
 Each MaxPooling operation extracts the maximum value from the given GCN block.
 
 
