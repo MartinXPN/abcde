@@ -5,6 +5,11 @@ This work was published in PeerJ Computer Science journal: https://peerj.com/art
 
 Link to the Overleaf project (PeerJ draft): https://www.overleaf.com/read/tphdqhycvwfk
 
+### ABCDE model architecture
+![](https://i.imgur.com/D0WIjO2.png)
+Each Transition block is a set of {Linear → LayerNorm → PRelu → Dropout} layers, while each GCN is a set of {GCNConv → PReLU → LayerNorm → Dropout}. + symbol is the concatenation operation.
+Each MaxPooling operation extracts the maximum value from the given GCN block.
+
 
 ### To reproduce the results
 ```shell
@@ -42,12 +47,6 @@ python predict.py real --model_path experiments/latest/models/best.ckpt \
 # To run the whole evaluation
 python predict.py all --model_path experiments/latest/models/best.h5py --datasets_dir datasets
 ```
-
-## ABCDE model architecture
-![](https://i.imgur.com/D0WIjO2.png)
-Each Transition block is a set of {Linear → LayerNorm → PRelu → Dropout} layers, while each GCN is a set of {GCNConv → PReLU → LayerNorm → Dropout}. + symbol is the concatenation operation.
-Each MaxPooling operation extracts the maximum value from the given GCN block.
-
 
 ## Obtained results so far [v1.0.0](https://github.com/MartinXPN/abcde/releases/tag/v1.0.0) and comparison with the original [DrBC](https://github.com/FFrankyy/DrBC) paper and sampling based benchmarks
 Obtained results on `Real` datasets (Model was run on 512GB CPU machine with 80 cores):
